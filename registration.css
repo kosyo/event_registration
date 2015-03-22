@@ -1,0 +1,9 @@
+select.error, textarea.error, input.error {
+  border: 1px solid red;
+
+}
+
+#error_box
+{
+    color: red;
+}

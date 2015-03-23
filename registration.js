@@ -16,6 +16,11 @@ var allRadios = jQuery(this).find('#registration_form').find('input[type=radio]'
         }
 		jQuery(this).find('#registration_form').submit(function(){
 			var form = jQuery(this);
+			var fields = form.find('input[]');
+			for(x = 0; x < fields.length; x++){
+				console.log(fields[i].name);
+}
+
 				emailField = form.find('input[name=email]'),
 				phoneField = form.find('input[name=phone]'),
 				email = emailField.val();

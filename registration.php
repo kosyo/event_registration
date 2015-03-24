@@ -277,7 +277,25 @@ echo is_object($_POST['club']);
 
 	}
 
+	function start_list($attr)
+	{
+        global $wpdb;
+        
+        $rows = $wpdb->get_results($wpdb->prepare("SELECT user_id FROM marathon_events_users MEU JOIN marathon_events ME ON ME.id = MEU.event_id WHERE ME.event_id = %s ", $attr['event_id']));
+        foreach($rows as $row)
+        {
+            $output .= $row->user_id;
+        }
+        return $output;
+	}
+
+
+
+
 add_action( 'wp_ajax_nopriv_sendContact', 'tb_us_sendContact' );
 		add_action( 'wp_ajax_sendContact', 'tb_us_sendContact' );
 	add_shortcode('tb_contact', 'tb_contact_form');
+
+	add_shortcode('start_list', 'start_list');
+
 ?>

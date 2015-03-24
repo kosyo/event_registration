@@ -14,33 +14,50 @@ var allRadios = jQuery(this).find('#registration_form').find('input[type=radio]'
                 }
             };
         }
+jQuery.validator.setDefaults({
+                debug: true,
+                success: "valid"
+            });
+        jQuery('#registration_form').validate();
 		jQuery(this).find('#registration_form').submit(function(){
-			var form = jQuery(this);
-				emailField = form.find('input[name=email]'),
-				phoneField = form.find('input[name=phone]'),
-				email = emailField.val();
-				phone = phoneField.val();
-				jQuery.ajax({
+
+            var form = jQuery(this);
+        var isvalid = form.valid();
+        if(!isvalid)
+        {
+            e.preventDefault();
+        }
+                var ajaxReq = {
 					type: 'POST',
 					url: ajaxurl,
 					dataType: 'json',
 					data: {
 						action: 'sendContact',
-						email: email,
-						phone: phone,
-						first_name: form.find('input[name=first_name]').val(),
-						club: form.find('input[name=club]').val()
 					},
 					success: function(data){
 						if (data.success){
-jQuery("#content").html("succesful");
-							
-						}
+                            jQuery("#content").html("succesful");
+						} else
+                        {
+
+                            jQuery("#error_box").html(data.msg);
+                            $('html, body').animate({ scrollTop: 0 }, 'fast');
+                        }
 					},
 					error: function(ts){
  						alert('error');		
 					}
-				});
+				};
+
+                var allInputs = form.find( ":input" );
+                for(x = 0; x < allInputs.length; x++){
+                    if(allInputs[x].type != 'submit')
+                    {
+                        ajaxReq['data'][allInputs[x].name] = allInputs[x].value;
+                    }
+                }
+	
+				jQuery.ajax(ajaxReq);
 
 			return false;
 		});

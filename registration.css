@@ -7,3 +7,18 @@ select.error, textarea.error, input.error {
 {
     color: red;
 }
+
+.event
+{
+    margin-bottom: 10pt;
+}
+
+#register
+{
+    margin-top: 5pt;
+}
+
+#content
+{
+    margin-left: 30pt;
+}

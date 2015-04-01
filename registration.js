@@ -36,12 +36,14 @@ jQuery.validator.setDefaults({
 					},
 					success: function(data){
 						if (data.success){
-                            jQuery("#content").html("succesful");
+                            jQuery("#content").html(data.msg);
 						} else
                         {
 
                             jQuery("#error_box").html(data.msg);
-                            $('html, body').animate({ scrollTop: 0 }, 'fast');
+                            $('html,body').animate({
+                                scrollTop: $("#error_box").offset().top
+                            }, 'slow');
                         }
 					},
 					error: function(ts){
@@ -53,7 +55,11 @@ jQuery.validator.setDefaults({
                 for(x = 0; x < allInputs.length; x++){
                     if(allInputs[x].type != 'submit')
                     {
-                        ajaxReq['data'][allInputs[x].name] = allInputs[x].value;
+                        console.log(allInputs[x].type + ' ' + allInputs[x].checked);
+                        if((allInputs[x].type != 'radio' && allInputs[x].type != 'checkbox') || allInputs[x].checked)
+                        {
+                            ajaxReq['data'][allInputs[x].name] = allInputs[x].value;
+                        }
                     }
                 }
 	

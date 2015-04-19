@@ -46,4 +46,16 @@ create table marathon_events_users_group_seq
     id int AUTO_INCREMENT NOT NULL PRIMARY KEY    
 );
 
-alter table `marathon_events_users` add column group_id int not null
+alter table `marathon_events_users` add column group_id int not null;
+
+create table organizations
+(
+    id int not null AUTO_INCREMENT PRIMARY KEY,
+    name varchar(100) not null UNIQUE
+);
+
+alter table marathon_events add column organization_id int;
+ALTER table `marathon_events` add foreign key (organization_id) references organizations(id);
+update marathon_events set organization_id = 1 where organization_id is null;
+alter table marathon_events modify column organization_id int not null;
+

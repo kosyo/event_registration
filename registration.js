@@ -1,5 +1,71 @@
 jQuery(document).ready(function(){
 
+jQuery("#payed").click(function(e)
+{                       
+                e.preventDefault();
+console.log(jQuery('#payment_form').find("input[name=payment_id]").val());
+                var ajaxReq = {
+                    type: 'POST',
+                    url: ajaxurl,
+                    dataType: 'json',
+                    data: {     
+                        action: 'pay',
+                        payment_id: jQuery('#payment_form').find("input[name=payment_id]").val(),
+                    },
+                    success: function(data){
+                        if (data.success){
+                            jQuery("#error_box").html(data.msg);
+                        } else
+                        {
+                
+                            jQuery("#error_box").html(data.msg);
+                            jQuery('html,body').animate({
+                                scrollTop: jQuery("#error_box").offset().top
+                            }, 'slow');
+                        }
+                    },
+                    error: function(ts){
+                        alert('error');
+                    }
+                };
+                
+                jQuery.ajax(ajaxReq);
+                    
+                
+});                 
+
+jQuery(".unjoin_event").click(function()
+{
+                var ajaxReq = {
+                    type: 'POST',
+                    url: ajaxurl,
+                    dataType: 'json',
+                    data: {
+                        action: 'unjoin_event',
+                        id: jQuery(this).attr("data-id"),
+                    },
+                    success: function(data){
+                        if (data.success){
+                            location.reload();
+                        } else
+                        {
+
+                            jQuery("#error_box").html(data.msg);
+                            jQuery('html,body').animate({
+                                scrollTop: jQuery("#error_box").offset().top
+                            }, 'slow');
+                        }
+                    },
+                    error: function(ts){
+                        alert('error');
+                    }
+                };
+                
+                jQuery.ajax(ajaxReq);
+
+
+});
+
 var allRadios = jQuery(this).find('#registration_form').find('input[type=radio]');
         var booRadio;
         var x = 0;
@@ -41,8 +107,8 @@ jQuery.validator.setDefaults({
                         {
 
                             jQuery("#error_box").html(data.msg);
-                            $('html,body').animate({
-                                scrollTop: $("#error_box").offset().top
+                            jQuery('html,body').animate({
+                                scrollTop: jQuery("#error_box").offset().top
                             }, 'slow');
                         }
 					},

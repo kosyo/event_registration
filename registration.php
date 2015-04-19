@@ -30,9 +30,9 @@ add_action( 'wp_head', 'pw_global_js_vars' );
 
 function tb_contact_form($attr)
 	{
-        if(current_user_can('administrator'))
+        if(current_user_can('administrator') && !isset($attr['unjoin']))
         {
-            $output .= '<div id="payment_confirm"><form action="" method="post" id="payment_form">Payment ID: <input type="text" name="group_id"><input type="submit" id="payed" value="' . __('Payed', 'us') . '">
+            $output .= '<div id="payment_confirm"><form action="" method="post" id="payment_form">Payment ID: <input type="text" name="payment_id"><input type="submit" id="payed" value="' . __('Payed', 'us') . '">
 </form></div>';
   
         }
@@ -45,32 +45,78 @@ function tb_contact_form($attr)
         wp_enqueue_style('loadcss', $pluginUrl.'/trunk/registration.css');
 
 		global $wpdb;
-
-		$rows = $wpdb->get_results("SELECT * FROM marathon_events 
-					     where start_timestamp < now() 
-                         and end_timestamp > now()
-                         ORDER BY ordering, id");
+        if (is_user_logged_in())
+        {
+            $user_id = get_current_user_id();
+        }
+        else
+        {
+            $user_id = -1;
+        }
+		$rows = $wpdb->get_results($wpdb->prepare("SELECT ME.*, MEU.event_distance_id, MEU.id AS marathon_events_users_id  FROM marathon_events ME
+                                    LEFT JOIN marathon_events_users MEU ON MEU.event_id = ME.id AND MEU.user_id = $user_id
+                                    where ME.start_timestamp < now() 
+                                    and ME.end_timestamp > now()
+                                    AND ME.organization_id = %d
+                         ORDER BY ME.ordering, ME.id", $attr['organization_id']));
 		foreach($rows as $row)
         {
-			$distances = $wpdb->get_results( 
-			$wpdb->prepare("SELECT * FROM marathon_events_distances WHERE event_id = %s ORDER BY ordering, id", $row->unique_id));
-
-	        $events .= '<div class="event"><b>'. $row->{name_ . $lang} . '</b><div>';
-            $has_distances = false;
-            foreach($distances as $distance)
-			{
-				$has_distances = true;
-				$events .= '<input type="radio" name="' . $row->id . '" value="' . $distance->id. '"> ' . $distance->{name_ . $lang}. ' ' ;
-			}
-			if(!$has_distances)
+            if(!isset($row->event_distance_id))
             {
-                $rows = $wpdb->insert("marathon_events_distances", array( event_id => $row->unique_id ));
-				$events .= '<input type="radio" name="' . $row->id . '" value="' . $wpdb->insert_id . '">';
-			}
-			$events .= '</div></div>';
-		}
-        $output .= '<div id="content"><div id="error_box"></div><form action="" method="post" id="registration_form">
-		' . $events;
+                $distances = $wpdb->get_results( 
+                    $wpdb->prepare("SELECT * FROM marathon_events_distances WHERE event_id = %s ORDER BY ordering, id", $row->unique_id));
+
+                $events .= '<div class="event"><b>'. $row->{name_ . $lang} . '</b><div>';
+                $has_distances = false;
+                foreach($distances as $distance)
+                {
+                    $has_distances = true;
+                    $events .= '<input type="radio" name="' . $row->id . '" value="' . $distance->id. '"> ' . $distance->{name_ . $lang}. ' ' ;
+                }
+                if(!$has_distances)
+                {
+                    $rows = $wpdb->insert("marathon_events_distances", array( event_id => $row->unique_id ));
+                    $events .= '<input type="radio" name="' . $row->id . '" value="' . $wpdb->insert_id . '">';
+                }
+                $events .= '</div></div>';
+            }   
+            else
+            {
+                $events_unjoin .= '<div class="unjoin_event_row">' . $row->{name_ . $lang} . '<button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button></div>';
+            }
+        }
+        if(!isset($events_unjoin) && isset($attr['unjoin']))
+        {
+            $unjoin_title = '<div class="title">'.__("There are no events.",'us') .'</div>';
+        }
+        else
+        {
+            $unjoin_title = '';
+        }
+
+        if(!isset($events) && !isset($attr['unjoin']))
+        {
+            $new_events_title = '<div class="title">'.__("There are no events",'us') .'</div>';
+        }
+        else
+        {
+            if(!isset($attr['unjoin']))
+            {
+                $events = '<form action="" method="post" id="registration_form">' . $events; 
+            }    
+            $new_events_title = '';
+        }
+
+        if(isset($attr['unjoin']))
+        {
+            $events = '';
+        }
+        else
+        {
+            $events_unjoin = '';
+        }
+
+        $output .= '<div id="content"> <div id="error_box"></div>' . $unjoin_title . $events_unjoin . $new_events_title . $events;
 if (!is_user_logged_in())
 {
     $required_msg = __('This field is required.', 'us');
@@ -167,19 +213,19 @@ if (!is_user_logged_in())
 		
 ';
 }
+if(isset($events) && $events != '')
+{
+    $output .= '<input type="submit" id="register" value="' . __('Register', 'us') . '"></form>';
+}
 
-$output .= '	
-<input type="submit" id="register" value="' . __('Register', 'us') . '">
-</form>
-		</div>
-';
+$output .= '</div>';
 		return $output;
 	}
 
 	if ( ! function_exists('us_sendContact'))
 	{		
 
-		function tb_us_sendContact()
+		function tb_us_sendContact($attr)
 		{
             $lang = qtrans_getLanguage();
    //         error_reporting(E_ERROR | E_PARSE);
@@ -225,7 +271,7 @@ echo is_object($_POST['club']);
                     $mail[0]->data = str_replace('{PASS}', $pass, $mail[0]->data);
                     $mail[0]->data = str_replace('{PASS_RESET_LINK}', password_reset_link($_POST['email']), $mail[0]->data);
                     
-                    mail("kosyokk@gmail.com",$mail[0]->title, $mail[0]->data);
+//                    mail("kosyokk@gmail.com",$mail[0]->title, $mail[0]->data);
                 }
 			}
 			else
@@ -235,7 +281,8 @@ echo is_object($_POST['club']);
 		
 			$rows = $wpdb->get_results("SELECT * FROM marathon_events 
 					     where start_timestamp < now() 
-					     and end_timestamp > now()");
+					     and end_timestamp > now()"
+                         );
 
             $have_event = false;
                 
@@ -292,7 +339,7 @@ echo is_object($_POST['club']);
 
             if(isset($mail[0]->data))
             {
-               mail("kosyokk@gmail.com", $mail[0]->title, str_replace('{EVENTNAMES}', $event_names, $mail[0]->data));
+//               mail("kosyokk@gmail.com", $mail[0]->title, str_replace('{EVENTNAMES}', $event_names, $mail[0]->data));
             }
 
             if($events_count > 0)
@@ -416,6 +463,10 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
 	function start_list($attr)
 	{
         $lang = qtrans_getLanguage();
+        $pluginUrl = plugins_url();
+        wp_enqueue_script('loadjs', $pluginUrl.'/trunk/registration.js');
+        wp_enqueue_script('loadvalidationjs', $pluginUrl.'/trunk/jquery.validate.min.js');
+        wp_enqueue_style('loadcss', $pluginUrl.'/trunk/registration.css');
 
         global $wpdb;
 
@@ -424,13 +475,13 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
         $rows = $wpdb->get_results($wpdb->prepare("SELECT MED.* FROM marathon_events_distances MED JOIN marathon_events ME ON ME.unique_id = MED.event_id WHERE ME.unique_id = %s order by MED.ordering, MED.id", $attr['event_id']));
         if($rows == NULL)
         {
-            $output .= __('No users are registered for this event yet.', 'us');
+            $output .= __('No users are registered for this event yet. '.$attr['event_id'], 'us');
         }
         else
         {
             if(current_user_can('administrator'))
             {
-                $admin_cells_header = '<td><b>' . __('Email', 'us') . '</b></td><td><b>' . __('Phone', 'us') . '</b></td><td><b>' . __('Payment ID', 'us') . '</b></td><td><b>' . __('Price', 'us') . '</b></td>';
+                $admin_cells_header = '<td><b>' . __('Email', 'us') . '</b></td><td><b>' . __('Phone', 'us') . '</b></td><td><b>' . __('Payment ID', 'us') . '</b></td><td><b>' . __('Price', 'us') . '</b></td><td>' . __("Delete",'us') . '</td>';
             }
             else
             {   
@@ -443,7 +494,7 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                 $user_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_users MEU WHERE MEU.event_distance_id = %d order by id", $row->id));
                 if($user_rows == NULL)
                 {   
-                    $output .= '</table>' . __('No users are registered for this event yet.', 'us') . '</br></br>';
+                    $output .= '</table>' . __('No users are registered for this event yet!', 'us') . '</br></br>';
                     next;
                 }  
                 foreach($user_rows as $user_row)
@@ -462,7 +513,7 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                     }
                     if(current_user_can('administrator'))
                     {   
-                        $admin_cells = '<td>' . $user->user_email . '</td><td>' . $user->phone . '</td><td>' . $user_row->group_id . '</td><td>' . sprintf("%.2f", $payment[0]->price) .  '</td>';
+                        $admin_cells = '<td>' . $user->user_email . '</td><td>' . $user->phone . '</td><td>' . $user_row->group_id . '</td><td>' . sprintf("%.2f", $payment[0]->price) .  '</td><td><button class="unjoin_event" data-id="' . $user_row->id . '">Delete</button></td>';
                     }
                     else
                     {
@@ -495,6 +546,27 @@ function payment_confirmation($atts)
     return '';
 }
 */
+
+function pay()
+{
+    global $wpdb;
+    $rows = $wpdb->get_results($wpdb->prepare("UPDATE marathon_events_users  
+                                    SET payment = 1
+                                    where group_id = %d", $_POST['payment_id']));
+
+    $response = array ('success' => 1, msg => 'Successful pay for user ');
+    echo json_encode($response);
+    die();
+}
+
+function unjoin_event() 
+{
+    global $wpdb;
+    $wpdb->query($wpdb->prepare("DELETE FROM marathon_events_users WHERE id = %d AND (user_id = %d OR %b)", $_POST['id'], get_current_user_id(), current_user_can('administrator') ));
+    $response = array ('success' => 1, msg => $msg);
+    echo json_encode($response);
+    die();
+}
 
 function password_reset_link($login) {
     global $wpdb, $wp_hasher;
@@ -586,11 +658,18 @@ function password_reset_link($login) {
 function custom_deregister_editor_expand() {
 wp_deregister_script('editor-expand');
 }
-add_action( 'admin_init', 'custom_deregister_editor_expand' );
+    add_action( 'admin_init', 'custom_deregister_editor_expand' );
 
 
-add_action( 'wp_ajax_nopriv_sendContact', 'tb_us_sendContact' );
-		add_action( 'wp_ajax_sendContact', 'tb_us_sendContact' );
+    add_action( 'wp_ajax_nopriv_sendContact', 'tb_us_sendContact' );
+    add_action( 'wp_ajax_sendContact', 'tb_us_sendContact' );
+
+    add_action( 'wp_ajax_nopriv_unjoin_event', 'unjoin_event' );
+    add_action( 'wp_ajax_unjoin_event', 'unjoin_event' );
+
+    add_action( 'wp_ajax_nopriv_pay', 'pay' );
+    add_action( 'wp_ajax_pay', 'pay' );
+
 	add_shortcode('registration', 'tb_contact_form');
 
 	add_shortcode('start_list', 'start_list');
@@ -602,7 +681,5 @@ add_action( 'wp_ajax_nopriv_sendContact', 'tb_us_sendContact' );
     {
         return 'bg_BG';
     }
-
-
 
 ?>

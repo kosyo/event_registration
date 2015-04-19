@@ -51,11 +51,23 @@ alter table `marathon_events_users` add column group_id int not null;
 create table organizations
 (
     id int not null AUTO_INCREMENT PRIMARY KEY,
-    name varchar(100) not null UNIQUE
+ lter table marathon_events_prices add column event_discipline_id int , add foreign key event_distances_fk(event_discipline_id) references marathon_event_distances(id);
+   name varchar(100) not null UNIQUE
 );
 
 alter table marathon_events add column organization_id int;
 ALTER table `marathon_events` add foreign key (organization_id) references organizations(id);
 update marathon_events set organization_id = 1 where organization_id is null;
 alter table marathon_events modify column organization_id int not null;
+alter table marathon_events_prices add column organization_id int not null default 1, add foreign key organization_id_fk(organization_id) references organizations(id);
+alter table marathon_events_prices add column event_discipline_id int , add foreign key event_distances_fk(event_discipline_id) references marathon_events_distances(id);
 
+create table payments
+(
+    id int AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    payment_id int not null,
+    organization_id int not null,
+    value numeric,
+    created_at timestamp not null default CURRENT_TIMESTAMP,
+    foreign key (organization_id) references organizations(id)
+);

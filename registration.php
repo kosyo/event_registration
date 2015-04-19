@@ -288,13 +288,15 @@ echo is_object($_POST['club']);
                 
             $events_count = 0;
             $events_arr = array();
+            $disciplines_ids = array();
+
 			foreach($rows as $row)
 			{
 				if(isset($_POST[$row->id]))
 				{
                     if($have_event == false)
                     {       
-                        $wpdb->insert("marathon_events_users_group_seq", array(t => 1));
+                        $wpdb->insert("marathon_events_users_group_seq", array(organization_id => $row->organization_id));
                         $group_id = $wpdb->insert_id;
                     }
                     $have_event = true;
@@ -323,6 +325,7 @@ echo is_object($_POST['club']);
                     $event_names .= $row->{name_ . $lang} . '  ' . $distance[0]->{name_ . $lang} .  ', '; 
                     $event_names_en .= $row->{name_en} . '  ' . $distance[0]->{name_en} .  ', ';
                     $events_count++;
+                    array_push($disciplines_ids, $distance[0]->id);
                 }
             }
 
@@ -344,9 +347,24 @@ echo is_object($_POST['club']);
 
             if($events_count > 0)
             {
-                $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE count = $events_count");
-
-                $price = sprintf('%.2f', $price_row[0]->price);
+                $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE count = $events_count and organization_id = $row->organization_id");
+                if($wpdb->num_rows == 0)
+                {
+                    foreach($disciplines_ids as $discipline_id)
+                    {
+                        $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE event_discipline_id = $discipline_id  and organization_id = $row->organization_id and (start_at <= now() and end_at >= now()) or (start_at is null or end_at is null)");
+                        $price += $price_row[0]->price;
+                    }
+                }
+                else
+                {
+                    $price = $price_row[0]->price;
+                } 
+                if(!isset($price))
+                {
+                    $price = 0;
+                }
+                $price = sprintf('%.2f', $price);
             }
             $epay = '<style>
 
@@ -401,6 +419,11 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
 <input type=hidden name=URL_CANCEL value="https://www.epay.bg/?p=cancel">
 </form>
                     ';
+
+            if($price == '0.00') 
+            {
+                $epay = '';
+            }
             $msg_row = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE code = 'registration_confirmation' AND lang = %s", $lang));
 
             $msg = str_replace('{EVENTNAMES}', substr($event_names, 0, -2), $msg_row[0]->data);
@@ -550,12 +573,26 @@ function payment_confirmation($atts)
 function pay()
 {
     global $wpdb;
-    $rows = $wpdb->get_results($wpdb->prepare("UPDATE marathon_events_users  
-                                    SET payment = 1
-                                    where group_id = %d", $_POST['payment_id']));
+    $wpdb->query( "START TRANSACTION;" );
+
+    $events_count = $wpdb->update('marathon_events_users', array( 'payment' => 1), array( 'group_id' => $_POST['payment_id']));
+    
+    $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
+    $rows = $wpdb->insert("payments",  array( 'payment_id' => $_POST['payment_id'], 'value' => $payment[0]->price));
+    
+    if($rows != 1)
+    {
+        $response = array ('success' => 0, msg => 'Cant make payment ');
+        echo json_encode($response);
+        die();
+    }
 
     $response = array ('success' => 1, msg => 'Successful pay for user ');
+
+    $wpdb->query( "COMMIT;" );
+
     echo json_encode($response);
+
     die();
 }
 

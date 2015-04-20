@@ -72,6 +72,7 @@ console.log(jQuery('#payment_form').find("input[name=payment_id]").val());
 jQuery("#delete_expired_payments").click(function(e)
 {
                 e.preventDefault();
+                confirm('Are you sure you want to archive expired unpay payments?');
                 var ajaxReq = {
                     type: 'POST',
                     url: ajaxurl,

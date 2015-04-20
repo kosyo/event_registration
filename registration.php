@@ -32,9 +32,7 @@ function tb_contact_form($attr)
 	{
         if(current_user_can('administrator') && !isset($attr['unjoin']))
         {
-            $output .= '<div id="payment_confirm"><form action="" method="post" id="payment_form">Payment ID: <input type="text" name="payment_id"><input type="submit" id="payed" value="' . __('Payed', 'us') . '"><input type="submit" id="without_fee" value="' . __('Without fee', 'us') . '">
-
-</form></div><div><button id="delete_expired_payments" data-organization_id="'. $attr['organization_id'] . '">' . __('Delete expired partial payments') . '</button></div>';
+            $output .= '<div id="payment_confirm"><form action="" method="post" id="payment_form">Payment ID: <input type="text" name="payment_id"><input type="submit" id="payed" value="' . __('Payed', 'us') . '"><input type="submit" id="without_fee" value="' . __('Without fee', 'us') . '"></form></div><div><button id="delete_expired_payments" data-organization_id="'. $attr['organization_id'] . '">' . __('Delete expired partial payments') . '</button></div>';
   
         }
 
@@ -353,19 +351,21 @@ echo is_object($_POST['club']);
 
             if($events_count > 0)
             {
-                $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE count = $events_count and organization_id = $row->organization_id");
-                if($wpdb->num_rows == 0)
+                $c = 0;
+                foreach($disciplines_ids as $discipline_id)
                 {
-                    foreach($disciplines_ids as $discipline_id)
+                    $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE event_discipline_id = $discipline_id  and (start_at <= now() and end_at >= now()) or (start_at is null or end_at is null)");
+                    if($wpdb->num_rows == 0)
                     {
-                        $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE event_discipline_id = $discipline_id  and organization_id = $row->organization_id and (start_at <= now() and end_at >= now()) or (start_at is null or end_at is null)");
+                        $c++;
+                    }
+                    else
+                    {
                         $price += $price_row[0]->price;
                     }
                 }
-                else
-                {
-                    $price = $price_row[0]->price;
-                } 
+                $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE count = $c and organization_id = $row->organization_id");
+                $price += $price_row[0]->price;
                 if(!isset($price))
                 {
                     $price = 0;

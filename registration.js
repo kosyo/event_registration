@@ -34,6 +34,75 @@ console.log(jQuery('#payment_form').find("input[name=payment_id]").val());
                 
 });                 
 
+jQuery("#without_fee").click(function(e)
+{
+                e.preventDefault();
+console.log(jQuery('#payment_form').find("input[name=payment_id]").val());
+                var ajaxReq = {
+                    type: 'POST',
+                    url: ajaxurl,
+                    dataType: 'json',
+                    data: {
+                        action: 'pay',
+                        without_fee: 1,
+                        payment_id: jQuery('#payment_form').find("input[name=payment_id]").val(),
+                    },
+                    success: function(data){
+                        if (data.success){
+                            jQuery("#error_box").html(data.msg);
+                        } else
+                        {
+
+                            jQuery("#error_box").html(data.msg);
+                            jQuery('html,body').animate({
+                                scrollTop: jQuery("#error_box").offset().top
+                            }, 'slow');
+                        }
+                    },
+                    error: function(ts){
+                        alert('error');
+                    }
+                };
+
+                jQuery.ajax(ajaxReq);
+
+
+});
+
+jQuery("#delete_expired_payments").click(function(e)
+{
+                e.preventDefault();
+                var ajaxReq = {
+                    type: 'POST',
+                    url: ajaxurl,
+                    dataType: 'json',
+                    data: {
+                        action: 'delete_expired_payments',
+                        organization_id: jQuery(this).attr('data-organization_id')
+                    },
+                    success: function(data){
+                        if (data.success){
+                            jQuery("#error_box").html(data.msg);
+                        } else
+                        {
+
+                            jQuery("#error_box").html(data.msg);
+                            jQuery('html,body').animate({
+                                scrollTop: jQuery("#error_box").offset().top
+                            }, 'slow');
+                        }
+                    },
+                    error: function(ts){
+                        alert('error');
+                    }
+                };
+
+                jQuery.ajax(ajaxReq);
+
+
+});
+
+
 jQuery(".unjoin_event").click(function()
 {
                 var ajaxReq = {

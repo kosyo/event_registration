@@ -32,8 +32,9 @@ function tb_contact_form($attr)
 	{
         if(current_user_can('administrator') && !isset($attr['unjoin']))
         {
-            $output .= '<div id="payment_confirm"><form action="" method="post" id="payment_form">Payment ID: <input type="text" name="payment_id"><input type="submit" id="payed" value="' . __('Payed', 'us') . '">
-</form></div>';
+            $output .= '<div id="payment_confirm"><form action="" method="post" id="payment_form">Payment ID: <input type="text" name="payment_id"><input type="submit" id="payed" value="' . __('Payed', 'us') . '"><input type="submit" id="without_fee" value="' . __('Without fee', 'us') . '">
+
+</form></div><div><button id="delete_expired_payments" data-organization_id="'. $attr['organization_id'] . '">' . __('Delete expired partial payments') . '</button></div>';
   
         }
 
@@ -53,7 +54,7 @@ function tb_contact_form($attr)
         {
             $user_id = -1;
         }
-		$rows = $wpdb->get_results($wpdb->prepare("SELECT ME.*, MEU.event_distance_id, MEU.id AS marathon_events_users_id  FROM marathon_events ME
+		$rows = $wpdb->get_results($wpdb->prepare("SELECT ME.*, MEU.event_distance_id, MEU.id AS marathon_events_users_id, MEU.payment  FROM marathon_events ME
                                     LEFT JOIN marathon_events_users MEU ON MEU.event_id = ME.id AND MEU.user_id = $user_id
                                     where ME.start_timestamp < now() 
                                     and ME.end_timestamp > now()
@@ -82,7 +83,12 @@ function tb_contact_form($attr)
             }   
             else
             {
-                $events_unjoin .= '<div class="unjoin_event_row">' . $row->{name_ . $lang} . '<button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button></div>';
+                $events_unjoin .= '<div class="unjoin_event_row">' . $row->{name_ . $lang}; 
+                if(!$row->payment)
+                {
+                    $events_unjoin .= '<button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button>';
+                }
+                $events_unjoin .= '</div>';
             }
         }
         if(!isset($events_unjoin) && isset($attr['unjoin']))
@@ -572,37 +578,75 @@ function payment_confirmation($atts)
 
 function pay()
 {
-    global $wpdb;
-    $wpdb->query( "START TRANSACTION;" );
-
-    $events_count = $wpdb->update('marathon_events_users', array( 'payment' => 1), array( 'group_id' => $_POST['payment_id']));
-    
-    $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
-    $rows = $wpdb->insert("payments",  array( 'payment_id' => $_POST['payment_id'], 'value' => $payment[0]->price));
-    
-    if($rows != 1)
+    if(current_user_can('administrator'))
     {
-        $response = array ('success' => 0, msg => 'Cant make payment ');
+        global $wpdb;
+        $wpdb->query( "START TRANSACTION;" );
+
+        $events_count = $wpdb->update('marathon_events_users', array( 'payment' => 1), array( 'group_id' => $_POST['payment_id']));
+    
+        if($events_count == 0)
+        {
+            $response = array ('success' => 0, msg => 'No related events to this payment_id ');
+            echo json_encode($response);
+            die();
+        }           
+        if(!isset($_POST['without_fee']))
+        {
+            $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
+            $rows = $wpdb->insert("payments",  array( 'payment_id' => $_POST['payment_id'], 'value' => $payment[0]->price));
+            if($rows != 1)
+            {
+                $response = array ('success' => 0, msg => 'Cant make payment ');
+                echo json_encode($response);
+                die();
+            }
+            $response = array ('success' => 1, msg => 'Successful pay for user ');
+        } 
+        else
+        {
+            $response = array ('success' => 1, msg => 'Successful free from fee user ');
+        }
+
+
+
+        $wpdb->query( "COMMIT;" );
+
         echo json_encode($response);
-        die();
     }
-
-    $response = array ('success' => 1, msg => 'Successful pay for user ');
-
-    $wpdb->query( "COMMIT;" );
-
-    echo json_encode($response);
-
     die();
 }
 
 function unjoin_event() 
 {
     global $wpdb;
-    $wpdb->query($wpdb->prepare("DELETE FROM marathon_events_users WHERE id = %d AND (user_id = %d OR %b)", $_POST['id'], get_current_user_id(), current_user_can('administrator') ));
+    $wpdb->query($wpdb->prepare("DELETE FROM marathon_events_users WHERE id = %d AND ((user_id = %d AND payment = false) OR %b)", $_POST['id'], get_current_user_id(), current_user_can('administrator') ));
     $response = array ('success' => 1, msg => $msg);
     echo json_encode($response);
     die();
+}
+
+function delete_expired_payments()
+{
+        global $wpdb;
+        $wpdb->query( "START TRANSACTION;" );
+        $rows = $wpdb->get_results($wpdb->prepare("SELECT MED.*
+                                                   FROM marathon_events ME
+                                                   JOIN marathon_events_distances MED ON MED.event_id = ME.unique_id
+                                                   WHERE
+                                                   ME.end_timestamp < now()
+                                                   AND ME.organization_id = %d", $_POST['organization_id']));
+        foreach($rows as $row)
+        {
+            $events_count = $wpdb->update('marathon_events_users', array( 'payment' => 1), array( 'event_distance_id' => $row->id));
+        }
+
+        $response = array ('success' => 1, 'msg' => 'Successful');
+        $wpdb->query( "COMMIT;" );
+  
+        echo json_encode($response);
+        die();
+
 }
 
 function password_reset_link($login) {
@@ -706,6 +750,9 @@ wp_deregister_script('editor-expand');
 
     add_action( 'wp_ajax_nopriv_pay', 'pay' );
     add_action( 'wp_ajax_pay', 'pay' );
+
+    add_action( 'wp_ajax_nopriv_delete_expired_payments', 'delete_expired_payments' );
+    add_action( 'wp_ajax_delete_expired_payments', 'delete_expired_payments' );
 
 	add_shortcode('registration', 'tb_contact_form');
 

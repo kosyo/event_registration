@@ -32,7 +32,7 @@ function tb_contact_form($attr)
 	{
         if(current_user_can('administrator') && !isset($attr['unjoin']))
         {
-            $output .= '<div id="payment_confirm"><form action="" method="post" id="payment_form">Payment ID: <input type="text" name="payment_id"><input type="submit" id="payed" value="' . __('Payed', 'us') . '"><input type="submit" id="without_fee" value="' . __('Without fee', 'us') . '"></form></div><div><button id="delete_expired_payments" data-organization_id="'. $attr['organization_id'] . '">' . __('Delete expired partial payments') . '</button></div>';
+            $output .= '<div id="payment_confirm"><form action="" method="post" id="payment_form">Payment ID: <input type="text" name="payment_id"><input type="submit" id="payed" value="' . __('Payed', 'us') . '"><input type="submit" id="without_fee" value="' . __('Without fee', 'us') . '"><input type="submit" id="view_price" value="' . __('View Price', 'us') . '"></form></div><div><button id="delete_expired_payments" data-organization_id="'. $attr['organization_id'] . '">' . __('Delete expired partial payments') . '</button></div>';
   
         }
 
@@ -52,14 +52,24 @@ function tb_contact_form($attr)
         {
             $user_id = -1;
         }
-		$rows = $wpdb->get_results($wpdb->prepare("SELECT ME.*, MEU.event_distance_id, MEU.id AS marathon_events_users_id, MEU.payment  FROM marathon_events ME
+
+        $first = true;   
+
+		$rows = $wpdb->get_results($wpdb->prepare("SELECT ME.*, MEU.event_distance_id, MEU.id AS marathon_events_users_id, MEU.payment, MEU.group_id  FROM marathon_events ME
                                     LEFT JOIN marathon_events_users MEU ON MEU.event_id = ME.id AND MEU.user_id = $user_id
                                     where ME.start_timestamp < now() 
                                     and ME.end_timestamp > now()
                                     AND ME.organization_id = %d
-                         ORDER BY ME.ordering, ME.id", $attr['organization_id']));
-		foreach($rows as $row)
+                         ORDER BY MEU.group_id, ME.ordering, ME.id", $attr['organization_id']));
+		$i = 0;
+        foreach($rows as $row)
         {
+            $i++;
+            if($first)
+            {
+                $last_payment_id = $row->group_id;   
+                $first = false;
+            }
             if(!isset($row->event_distance_id))
             {
                 $distances = $wpdb->get_results( 
@@ -81,10 +91,33 @@ function tb_contact_form($attr)
             }   
             else
             {
-                $events_unjoin .= '<div class="unjoin_event_row">' . $row->{name_ . $lang}; 
-                if(!$row->payment)
+                $events_unjoin .= '<div class="unjoin_event_row">'; 
+                if($last_payment_id != $row->group_id) 
+                {
+                    $events_unjoin .= '<br>';
+                }
+                else
+                {
+                    $b = true;
+                }
+                
+                $events_unjoin .= $row->{name_ . $lang};
+               if(!$row->payment)
                 {
                     $events_unjoin .= '<button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button>';
+                    if(($last_payment_id != $row->group_id ||  $i == count($rows)) && $b) 
+                    {
+                        $b = false;
+                        $events_unjoin .= '<div id="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $last_payment_id  . '"><button>' . __('Pay Online', 'us') . '</button></a></div>';
+                    }
+                } 
+                else
+                {
+                    $events_unjoin .= __(' - Payed', 'us');
+                }
+                if($last_payment_id != $row->group_id) 
+                {
+                    $last_payment_id = $row->group_id;
                 }
                 $events_unjoin .= '</div>';
             }
@@ -121,7 +154,7 @@ function tb_contact_form($attr)
         }
 
         $output .= '<div id="content"> <div id="error_box"></div>' . $unjoin_title . $events_unjoin . $new_events_title . $events;
-if (!is_user_logged_in())
+if (!is_user_logged_in() && !isset($attr['unjoin']))
 {
     $required_msg = __('This field is required.', 'us');
  	$output .= ' 
@@ -349,92 +382,12 @@ echo is_object($_POST['club']);
 //               mail("kosyokk@gmail.com", $mail[0]->title, str_replace('{EVENTNAMES}', $event_names, $mail[0]->data));
             }
 
-            if($events_count > 0)
-            {
-                $c = 0;
-                foreach($disciplines_ids as $discipline_id)
-                {
-                    $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE event_discipline_id = $discipline_id  and (start_at <= now() and end_at >= now()) or (start_at is null or end_at is null)");
-                    if($wpdb->num_rows == 0)
-                    {
-                        $c++;
-                    }
-                    else
-                    {
-                        $price += $price_row[0]->price;
-                    }
-                }
-                $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE count = $c and organization_id = $row->organization_id");
-                $price += $price_row[0]->price;
-                if(!isset($price))
-                {
-                    $price = 0;
-                }
-                $price = sprintf('%.2f', $price);
-            }
-            $epay = '<style>
-
-A.epay-button             { border: solid  1px #FFF; background-color: #168; padding: 6px; color: #FFF; background-image: none; font-weight: normal; padding-left: 20px; padding-right: 20px; }
-A.epay-button:hover       { border: solid  1px #ABC; background-color: #179; padding: 6px; color: #FFF; background-image: none; font-weight: normal; padding-left: 20px; padding-right: 20px; }
-
-A.epay                    { text-decoration: none; border-bottom: dotted 1px #168; color: #168; font-weight: bold; }
-A.epay:hover              { text-decoration: none; border-bottom: solid  1px #179; color: #179; font-weight: bold; }
-
-TABLE.epay-view    { white-space: nowrap; background-color: #CCC; }
-
-/********** VIEWES **********************************************************/
-
-TD.epay-view            { width: 100%; text-align: center; background-color: #DDD; }
-TD.epay-view-header     {                                  background-color: #168; color: #FFF; height: 30px; }
-TD.epay-view-name       { width:  25%; text-align: right;  background-color: #E9E9F9; border-bottom: none;  height: 30px; }
-TD.epay-view-value      { width:  75%; text-align: left;   background-color: #E9E9F9; border-bottom: none; white-space: normal; }
-
-INPUT.epay-button         { border: solid  1px #FFF; background-color: #168; padding: 4px; color: #FFF; background-image: none; padding-left: 20px; padding-right: 20px; }
-INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; padding: 4px; color: #FFF; background-image: none; padding-left: 20px; padding-right: 20px; }
-
-</style>
-</br>
-</br>
-<form action="https://www.epay.bg/" method=post>
-<table class=epay-view cellspacing=1 cellpadding=4 width=350>
-<tr>
-<td class=epay-view-header align=center>Описание</td>
-<td class=epay-view-header align=center>Сума</td>
-</tr>
-<tr>
-<td class=epay-view-value><b>' . $event_names . '</b></td>
-<td class=epay-view-name>'. $price . ' BGN</td>
-</tr>
-<tr>
-<td colspan=2 class=epay-view-name>
-<input class=epay-button type=submit name=BUTTON:EPAYNOW value="' . __('Pay on-line', 'us') . '">
-</td>
-</tr>
-<tr>
-<td colspan=2 class=epay-view-name style="white-space: normal; font-size: 10">
-' . __('Payment is processed by') . ' <a class=epay href="https://www.epay.bg/">ePay.bg</a>
-</td>
-</tr>
-</table>
-<input type=hidden name=PAGE value="paylogin">
-<input type=hidden name=MIN value="1682609015">
-<input type=hidden name=INVOICE value="">
-<input type=hidden name=TOTAL value="' . $price . '">
-<input type=hidden name=DESCR value="(' . $group_id . ') ' . $event_names_en . '">
-<input type=hidden name=URL_OK value=" '.  get_site_url() . '/' . $lang . '/payment_confirmation?events=' . json_encode($events_arr) . '>
-<input type=hidden name=URL_CANCEL value="https://www.epay.bg/?p=cancel">
-</form>
-                    ';
-
-            if($price == '0.00') 
-            {
-                $epay = '';
-            }
             $msg_row = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE code = 'registration_confirmation' AND lang = %s", $lang));
-
+                
             $msg = str_replace('{EVENTNAMES}', substr($event_names, 0, -2), $msg_row[0]->data);
-            $msg = str_replace('{EPAY}', $epay , $msg);
-			@session_start();
+            $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $group_id . '"><button>' . __('Pay Online', 'us') . '</button></a></div>' , $msg);
+
+            @session_start();
 
 			global $smof_data;
 			$errors = 0;
@@ -488,6 +441,101 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
 		}
 
 	}
+
+    function payment($attr)
+    {
+        global $wpdb;
+        $lang = qtrans_getLanguage();
+
+        $payment_id = $_GET['payment_id'];
+        $c = 0;
+        $disciplines = $wpdb->get_results($wpdb->prepare("SELECT MED.*, ME.organization_id, ME.name_en as event_name_en, ME.name_bg as event_name_bg FROM marathon_events_users MEU 
+                                                          JOIN marathon_events_distances MED ON MED.id = MEU.event_distance_id
+                                                          JOIN marathon_events ME ON ME.unique_id = MED.event_id
+                                                          WHERE MEU.group_id = %d", $payment_id));
+                foreach($disciplines as $discipline)
+                {
+                    $event_names .= $discipline->{event_name_ . $lang} . '  ' . $discipline->{name_ . $lang} .  ', '; 
+                    $event_names_en .= $discipline->{event_name_en} . '  ' . $discipline->{name_en} .  ', ';
+
+                    $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE event_discipline_id = $discipline->id  and (start_at <= now() and end_at >= now()) or (start_at is null or end_at is null)");
+                    if($wpdb->num_rows == 0)
+                    {
+                        $c++;
+                    }
+                    else
+                    {
+                        $price += $price_row[0]->price;
+                    }
+                    $organization_id = $discipline->organization_id;
+                }
+                $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE count = $c and organization_id = $organization_id");
+                $price += $price_row[0]->price;
+                if(!isset($price))
+                {
+                    $price = 0;
+                }
+                $price = sprintf('%.2f', $price);
+            $epay = '<style>
+
+A.epay-button             { border: solid  1px #FFF; background-color: #168; padding: 6px; color: #FFF; background-image: none; font-weight: normal; padding-left: 20px; padding-right: 20px; }
+A.epay-button:hover       { border: solid  1px #ABC; background-color: #179; padding: 6px; color: #FFF; background-image: none; font-weight: normal; padding-left: 20px; padding-right: 20px; }
+
+A.epay                    { text-decoration: none; border-bottom: dotted 1px #168; color: #168; font-weight: bold; }
+A.epay:hover              { text-decoration: none; border-bottom: solid  1px #179; color: #179; font-weight: bold; }
+
+TABLE.epay-view    { white-space: nowrap; background-color: #CCC; }
+
+/********** VIEWES **********************************************************/
+
+TD.epay-view            { width: 100%; text-align: center; background-color: #DDD; }
+TD.epay-view-header     {                                  background-color: #168; color: #FFF; height: 30px; }
+TD.epay-view-name       { width:  25%; text-align: right;  background-color: #E9E9F9; border-bottom: none;  height: 30px; }
+TD.epay-view-value      { width:  75%; text-align: left;   background-color: #E9E9F9; border-bottom: none; white-space: normal; }
+
+INPUT.epay-button         { border: solid  1px #FFF; background-color: #168; padding: 4px; color: #FFF; background-image: none; padding-left: 20px; padding-right: 20px; }
+INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; padding: 4px; color: #FFF; background-image: none; padding-left: 20px; padding-right: 20px; }
+
+</style>
+</br>
+</br>
+<form action="https://www.epay.bg/" method=post>
+<table class=epay-view cellspacing=1 cellpadding=4 width=350>
+<tr>
+<td class=epay-view-header align=center>Описание</td>
+<td class=epay-view-header align=center>Сума</td>
+</tr>
+<tr>
+<td class=epay-view-value><b>' . $event_names . '</b></td>
+<td class=epay-view-name>'. $price . ' BGN</td>
+</tr>
+<tr>
+<td colspan=2 class=epay-view-name>
+<input class=epay-button type=submit name=BUTTON:EPAYNOW value="' . __('Pay on-line', 'us') . '">
+</td>
+</tr>
+<tr>
+<td colspan=2 class=epay-view-name style="white-space: normal; font-size: 10">
+' . __('Payment is processed by') . ' <a class=epay href="https://www.epay.bg/">ePay.bg</a>
+</td>
+</tr>
+</table>
+<input type=hidden name=PAGE value="paylogin">
+<input type=hidden name=MIN value="1682609015">
+<input type=hidden name=INVOICE value="">
+<input type=hidden name=TOTAL value="' . $price . '">
+<input type=hidden name=DESCR value="(' . $payment_id . ') ' . $event_names_en . '">
+<input type=hidden name=URL_OK value=" '.  get_site_url() . '/' . $lang . '/payment_confirmation?events=' . json_encode($events_arr) . '>
+<input type=hidden name=URL_CANCEL value="https://www.epay.bg/?p=cancel">
+</form>
+                    ';
+
+            if($price == '0.00') 
+            {
+                $epay = '';
+            }
+	    return $epay;
+    }
 
 	function start_list($attr)
 	{
@@ -582,7 +630,8 @@ function pay()
     {
         global $wpdb;
         $wpdb->query( "START TRANSACTION;" );
-
+        $lang = qtrans_getLanguage();
+        
         $events_count = $wpdb->update('marathon_events_users', array( 'payment' => 1), array( 'group_id' => $_POST['payment_id']));
     
         if($events_count == 0)
@@ -591,26 +640,45 @@ function pay()
             echo json_encode($response);
             die();
         }           
-        if(!isset($_POST['without_fee']))
+        
+        $events = $wpdb->get_results($wpdb->prepare("SELECT concat(ME.name_$lang, ' ', MED.name_$lang) AS name, WU.user_email
+                                                     FROM marathon_events_users MEU 
+                                                     JOIN marathon_events_distances MED ON MED.id = MEU.event_distance_id
+                                                     JOIN marathon_events ME ON ME.unique_id = MED.event_id
+                                                     JOIN wp_users WU ON WU.id = MEU.user_id
+                                                     WHERE MEU.group_id = %d", $_POST['payment_id']));
+        $event_names = '';
+        foreach($events as $event)
         {
-            $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
-            $rows = $wpdb->insert("payments",  array( 'payment_id' => $_POST['payment_id'], 'value' => $payment[0]->price));
-            if($rows != 1)
+            $event_names .= $event->name . ', ';
+        }
+        $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
+        if(!isset($_POST['view_price']))
+        {
+            if(!isset($_POST['without_fee']))
             {
-                $response = array ('success' => 0, msg => 'Cant make payment ');
-                echo json_encode($response);
-                die();
+                $rows = $wpdb->insert("payments",  array( 'payment_id' => $_POST['payment_id'], 'value' => $payment[0]->price));
+                if($rows != 1)
+                {
+                    $response = array ('success' => 0, msg => 'Cant make payment ');
+                    echo json_encode($response);
+                    die();
+                }
+                $response = array ('success' => 1, msg => 'Successful pay for user: ' . $events[0]->user_email . ' events: ' . $event_names . ' price: ' . $payment[0]->price);
+            } 
+            else
+            {
+                $response = array ('success' => 1, msg => 'Successful free from fee user: '. $events[0]->user_email . ' events: ' . $event_names . ' price: ' . $payment[0]->price);
             }
-            $response = array ('success' => 1, msg => 'Successful pay for user ');
-        } 
+        
+            $wpdb->query( "COMMIT;" );
+        }
         else
         {
-            $response = array ('success' => 1, msg => 'Successful free from fee user ');
+            $response = array ('success' => 1, msg => 'user: '. $events[0]->user_email . ' events: ' . $event_names . ' price: ' . $payment[0]->price);
         }
 
 
-
-        $wpdb->query( "COMMIT;" );
 
         echo json_encode($response);
     }
@@ -755,7 +823,7 @@ wp_deregister_script('editor-expand');
     add_action( 'wp_ajax_delete_expired_payments', 'delete_expired_payments' );
 
 	add_shortcode('registration', 'tb_contact_form');
-
+    add_shortcode('payment', 'payment');
 	add_shortcode('start_list', 'start_list');
     add_shortcode('payment_list', 'payment_list');
 
@@ -765,5 +833,12 @@ wp_deregister_script('editor-expand');
     {
         return 'bg_BG';
     }
+
+function qtrans_convertHomeURL($url, $what) {
+    if($what=='/') return qtrans_convertURL($url);
+    return $url;
+}
+
+add_filter('home_url', 'qtrans_convertHomeURL', 10, 2);
 
 ?>

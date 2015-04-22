@@ -23,3 +23,7 @@ select.error, textarea.error, input.error {
     margin-left: 30pt;
 }
 
+button, input
+{
+    margin: 3pt 3pt 3pt 3pt;
+}

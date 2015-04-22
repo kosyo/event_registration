@@ -1,5 +1,6 @@
 jQuery(document).ready(function(){
 
+
 jQuery("#payed").click(function(e)
 {                       
                 e.preventDefault();
@@ -69,10 +70,47 @@ console.log(jQuery('#payment_form').find("input[name=payment_id]").val());
 
 });
 
+jQuery("#view_price").click(function(e)
+{
+                e.preventDefault();
+console.log(jQuery('#payment_form').find("input[name=payment_id]").val());
+                var ajaxReq = {
+                    type: 'POST',
+                    url: ajaxurl,
+                    dataType: 'json',
+                    data: {
+                        action: 'pay',
+                        view_price: 1,
+                        payment_id: jQuery('#payment_form').find("input[name=payment_id]").val(),
+                    },
+                    success: function(data){
+                        if (data.success){
+                            jQuery("#error_box").html(data.msg);
+                        } else
+                        {
+
+                            jQuery("#error_box").html(data.msg);
+                            jQuery('html,body').animate({
+                                scrollTop: jQuery("#error_box").offset().top
+                            }, 'slow');
+                        }
+                    },
+                    error: function(ts){
+                        alert('error');
+                    }
+                };
+
+                jQuery.ajax(ajaxReq);
+
+
+});
+
+
 jQuery("#delete_expired_payments").click(function(e)
 {
                 e.preventDefault();
-                confirm('Are you sure you want to archive expired unpay payments?');
+                if(confirm('Are you sure you want to archive expired unpay payments?'))
+                {
                 var ajaxReq = {
                     type: 'POST',
                     url: ajaxurl,
@@ -100,7 +138,7 @@ jQuery("#delete_expired_payments").click(function(e)
 
                 jQuery.ajax(ajaxReq);
 
-
+                }
 });
 
 

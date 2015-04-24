@@ -61,7 +61,8 @@ function tb_contact_form($attr)
                                     and ME.end_timestamp > now()
                                     AND ME.organization_id = %d
                          ORDER BY MEU.group_id, ME.ordering, ME.id", $attr['organization_id']));
-		$i = 0;
+        $i = 0;
+        $events_unjoin .= '<table class="events_table"><th>' . __("[:en]Event[:bg]Събитие") . '</th><th>' . __("[:en]Payment[:bg]Плащане") . '</th><th></th>';
         foreach($rows as $row)
         {
             $i++;
@@ -91,37 +92,43 @@ function tb_contact_form($attr)
             }   
             else
             {
-                $events_unjoin .= '<div class="unjoin_event_row">'; 
+                $events_unjoin .= '<tr class="unjoin_event_row">'; 
                 if($last_payment_id != $row->group_id) 
                 {
-                    $events_unjoin .= '<br>';
+                    $events_unjoin .= 'br';
                 }
                 else
                 {
                     $b = true;
                 }
                 
-                $events_unjoin .= $row->{name_ . $lang};
-               if(!$row->payment)
+                $events_unjoin .= '<td>' . $row->{name_ . $lang} . '</td>';
+                if(!$row->payment)
                 {
-                    $events_unjoin .= '<button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button>';
                     if(($last_payment_id != $row->group_id ||  $i == count($rows)) && $b) 
                     {
                         $b = false;
-                        $events_unjoin .= '<div id="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $last_payment_id  . '"><button>' . __('Pay Online', 'us') . '</button></a></div>';
+                        $events_unjoin .= '<td><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $last_payment_id  . '"><button>' . __('Pay Online', 'us') . '</button></a>';
                     }
+                    else
+                    {
+                        $events_unjoin .= '<td>';
+                    }
+                    $events_unjoin .= '</td>';
+                    $events_unjoin .= '<td><button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button></td>';
                 } 
                 else
                 {
-                    $events_unjoin .= __(' - Payed', 'us');
+                    $events_unjoin .= '<td>' . __('[:en]Payed[:bg]Платено', 'us') . '</td><td></td>';
                 }
                 if($last_payment_id != $row->group_id) 
                 {
                     $last_payment_id = $row->group_id;
                 }
-                $events_unjoin .= '</div>';
             }
+
         }
+            $events_unjoin .= '</table>';
         if(!isset($events_unjoin) && isset($attr['unjoin']))
         {
             $unjoin_title = '<div class="title">'.__("There are no events.",'us') .'</div>';
@@ -252,7 +259,7 @@ if (!is_user_logged_in() && !isset($attr['unjoin']))
 }
 if(isset($events) && $events != '')
 {
-    $output .= '<input type="submit" id="register" value="' . __('Register', 'us') . '"></form>';
+    $output .= '<input type="submit" id="register" value="' . __('[:en]Register[:bg]Регистрация', 'us') . '"></form>';
 }
 
 $output .= '</div>';
@@ -353,7 +360,7 @@ echo is_object($_POST['club']);
                             $events_name .= $event->{name_ . $lang} . ", ";
                         }
 
-                        $response = array ('success' => 0, 'msg' => sprintf(__("There is a problem with your registration. You are already registered for %s events. Please uncheck these events and try again."), substr($events_name, 0, -2)), "us");
+                        $response = array ('success' => 0, 'msg' => sprintf(__("[:en]There is a problem with your registration. You are already registered for %s events. Please uncheck these events and try again.[:bg]Вие вече сте регистрирани за следните събития: %s. Моля не отбелязвайте тези събития и опитайте отново."), substr($events_name, 0, -2)), "us");
                         echo json_encode($response);
                         die();
                     }
@@ -368,7 +375,7 @@ echo is_object($_POST['club']);
 
             if(!$have_event)
             {
-                $response = array ('success' => 0, 'msg' => __("Please select at least one event.", "us"));
+                $response = array ('success' => 0, 'msg' => __("[:en]Please select at least one event.[:bg]Моля изберете поне едно събитие.", "us"));
                 echo json_encode($response);
                 die();
             }
@@ -385,7 +392,7 @@ echo is_object($_POST['club']);
             $msg_row = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE code = 'registration_confirmation' AND lang = %s", $lang));
                 
             $msg = str_replace('{EVENTNAMES}', substr($event_names, 0, -2), $msg_row[0]->data);
-            $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $group_id . '"><button>' . __('Pay Online', 'us') . '</button></a></div>' , $msg);
+            $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $group_id . '"><button>' . __('[:en]Pay Online[:bg]Плащане онлайн', 'us') . '</button></a></div>' , $msg);
 
             @session_start();
 

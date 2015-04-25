@@ -28,6 +28,62 @@ function pw_global_js_vars() {
 }
 add_action( 'wp_head', 'pw_global_js_vars' );
 
+
+function my_events($attr)
+{
+    global $wpdb;
+    $lang = qtrans_getLanguage();
+
+    if (is_user_logged_in())
+    {
+        $user_id = get_current_user_id();
+    }
+    else
+    {   
+        $events_unjoin = _("Please log in.");
+        $user_id = -1;
+    }
+
+    $rows = $wpdb->get_results("SELECT MEU.group_id,
+                                       MEU.payment,
+                                                      GROUP_CONCAT( concat(ME.name_en, ' ', MED.name_en) SEPARATOR ', ') as name_en,
+                                                      GROUP_CONCAT( concat(ME.name_bg, ' ', MED.name_bg) SEPARATOR ', ')  as name_bg
+        FROM marathon_events_users MEU 
+        JOIN marathon_events_distances MED ON MED.id = MEU.event_distance_id
+        JOIN marathon_events ME ON ME.unique_id = MED.event_id
+        WHERE
+        MEU.user_id = $user_id
+        GROUP BY MEU.group_id, MEU.payment
+        ORDER BY MEU.payment, MEU.group_id DESC");
+    $events_unjoin .= '<table class="events_table"><th>' . __("[:en]Event[:bg]Събитие") . '</th><th>' . __("[:en]Payment[:bg]Плащане") . '</th><th></th>';
+    foreach($rows as $row)
+    {
+        $events_unjoin .= '<tr class="unjoin_event_row">'; 
+        $events_unjoin .= '<td>' . $row->{name_ . $lang} . '</td>';
+        if(!$row->payment)
+        {
+                $events_unjoin .= '<td><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $row->group_id . '"><button>' . __('Pay Online', 'us') . '</button></a>';
+            $events_unjoin .= '</td>';
+//            $events_unjoin .= '<td><button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button></td>';
+        } 
+        else
+        {
+            $events_unjoin .= '<td>' . __('[:en]Payed[:bg]Платено', 'us') . '</td>';
+        }
+    }
+    $events_unjoin .= '</table>';
+    if(!isset($events_unjoin) && isset($attr['unjoin']))
+    {
+        $unjoin_title = '<div class="title">'.__("There are no events.",'us') .'</div>';
+    }
+    else
+    {
+        $unjoin_title = '';
+    }
+
+    $output = $events_unjoin . $unjoin_title;
+    return $output;
+}
 function tb_contact_form($attr)
 	{
         if(current_user_can('administrator') && !isset($attr['unjoin']))
@@ -66,12 +122,7 @@ function tb_contact_form($attr)
         foreach($rows as $row)
         {
             $i++;
-            if($first)
-            {
-                $last_payment_id = $row->group_id;   
-                $first = false;
-            }
-            if(!isset($row->event_distance_id))
+           if(!isset($row->event_distance_id))
             {
                 $distances = $wpdb->get_results( 
                     $wpdb->prepare("SELECT * FROM marathon_events_distances WHERE event_id = %s ORDER BY ordering, id", $row->unique_id));
@@ -92,52 +143,9 @@ function tb_contact_form($attr)
             }   
             else
             {
-                $events_unjoin .= '<tr class="unjoin_event_row">'; 
-                if($last_payment_id != $row->group_id) 
-                {
-                    $events_unjoin .= 'br';
-                }
-                else
-                {
-                    $b = true;
-                }
-                
-                $events_unjoin .= '<td>' . $row->{name_ . $lang} . '</td>';
-                if(!$row->payment)
-                {
-                    if(($last_payment_id != $row->group_id ||  $i == count($rows)) && $b) 
-                    {
-                        $b = false;
-                        $events_unjoin .= '<td><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $last_payment_id  . '"><button>' . __('Pay Online', 'us') . '</button></a>';
-                    }
-                    else
-                    {
-                        $events_unjoin .= '<td>';
-                    }
-                    $events_unjoin .= '</td>';
-                    $events_unjoin .= '<td><button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button></td>';
-                } 
-                else
-                {
-                    $events_unjoin .= '<td>' . __('[:en]Payed[:bg]Платено', 'us') . '</td><td></td>';
-                }
-                if($last_payment_id != $row->group_id) 
-                {
-                    $last_payment_id = $row->group_id;
-                }
-            }
+           }
 
         }
-            $events_unjoin .= '</table>';
-        if(!isset($events_unjoin) && isset($attr['unjoin']))
-        {
-            $unjoin_title = '<div class="title">'.__("There are no events.",'us') .'</div>';
-        }
-        else
-        {
-            $unjoin_title = '';
-        }
-
         if(!isset($events) && !isset($attr['unjoin']))
         {
             $new_events_title = '<div class="title">'.__("There are no events",'us') .'</div>';
@@ -831,6 +839,7 @@ wp_deregister_script('editor-expand');
 
 	add_shortcode('registration', 'tb_contact_form');
     add_shortcode('payment', 'payment');
+    add_shortcode('my_events', 'my_events');
 	add_shortcode('start_list', 'start_list');
     add_shortcode('payment_list', 'payment_list');
 

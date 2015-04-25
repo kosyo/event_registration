@@ -144,6 +144,7 @@ jQuery("#delete_expired_payments").click(function(e)
 
 jQuery(".unjoin_event").click(function()
 {
+alert("ssss");
                 var ajaxReq = {
                     type: 'POST',
                     url: ajaxurl,

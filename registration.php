@@ -28,8 +28,63 @@ function pw_global_js_vars() {
 }
 add_action( 'wp_head', 'pw_global_js_vars' );
 
-
 function my_events($attr)
+{
+    global $wpdb;
+    $lang = qtrans_getLanguage();
+
+    if (is_user_logged_in())
+    {
+        $user_id = get_current_user_id();
+    }
+    else
+    {   
+        $events_unjoin = _("Please log in.");
+        $user_id = -1;
+    }
+
+    $rows = $wpdb->get_results("SELECT MEU.group_id,
+                                       MEU.payment,
+                                       MEU.id AS marathon_events_users_id,
+                                                      concat(ME.name_en, ' ', MED.name_en) as name_en,
+                                                      concat(ME.name_bg, ' ', MED.name_bg) as name_bg
+        FROM marathon_events_users MEU 
+        JOIN marathon_events_distances MED ON MED.id = MEU.event_distance_id
+        JOIN marathon_events ME ON ME.unique_id = MED.event_id
+        WHERE
+        MEU.user_id = $user_id
+        ORDER BY MEU.payment, MEU.group_id DESC");
+    $events_unjoin .= '<table class="events_table"><th>' . __("[:en]Event[:bg]Събитие") . '</th><th>' . __("[:en]Unjoin[:bg]Отказване") . '</th>';
+    foreach($rows as $row)
+    {
+        $events_unjoin .= '<tr class="unjoin_event_row">'; 
+        $events_unjoin .= '<td>' . $row->{name_ . $lang} . '</td>';
+        if(!$row->payment)
+        {
+            $events_unjoin .= '<td><button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button></td>';
+        } 
+        else
+        {
+//            $events_unjoin .= '<td>' . __('[:en]Payed[:bg]Платено', 'us') . '</td>';
+            $events_unjoin .= '<td></td>';
+
+        }
+    }
+    $events_unjoin .= '</table>';
+    if(!isset($events_unjoin) && isset($attr['unjoin']))
+    {
+        $unjoin_title = '<div class="title">'.__("There are no events.",'us') .'</div>';
+    }
+    else
+    {
+        $unjoin_title = '';
+    }
+
+    $output = $events_unjoin . $unjoin_title;
+    return $output;
+}
+
+function my_events_payments($attr)
 {
     global $wpdb;
     $lang = qtrans_getLanguage();
@@ -55,7 +110,7 @@ function my_events($attr)
         MEU.user_id = $user_id
         GROUP BY MEU.group_id, MEU.payment
         ORDER BY MEU.payment, MEU.group_id DESC");
-    $events_unjoin .= '<table class="events_table"><th>' . __("[:en]Event[:bg]Събитие") . '</th><th>' . __("[:en]Payment[:bg]Плащане") . '</th><th></th>';
+    $events_unjoin .= '<table class="events_table"><th>' . __("[:en]Event[:bg]Събитие") . '</th><th>' . __("[:en]Payment[:bg]Плащане") . '</th>';
     foreach($rows as $row)
     {
         $events_unjoin .= '<tr class="unjoin_event_row">'; 
@@ -323,7 +378,7 @@ echo is_object($_POST['club']);
                     $mail[0]->data = str_replace('{PASS}', $pass, $mail[0]->data);
                     $mail[0]->data = str_replace('{PASS_RESET_LINK}', password_reset_link($_POST['email']), $mail[0]->data);
                     
-//                    mail("kosyokk@gmail.com",$mail[0]->title, $mail[0]->data);
+                    mail("kosyokk@gmail.com",$mail[0]->title, $mail[0]->data);
                 }
 			}
 			else
@@ -394,13 +449,14 @@ echo is_object($_POST['club']);
 
             if(isset($mail[0]->data))
             {
-//               mail("kosyokk@gmail.com", $mail[0]->title, str_replace('{EVENTNAMES}', $event_names, $mail[0]->data));
+               $mail[0]->data = str_replace('{EPAY}', get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id, $mail[0]->data);
+               mail("kosyokk@gmail.com", $mail[0]->title, str_replace('{EVENTNAMES}', $event_names, $mail[0]->data));
             }
 
             $msg_row = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE code = 'registration_confirmation' AND lang = %s", $lang));
                 
             $msg = str_replace('{EVENTNAMES}', substr($event_names, 0, -2), $msg_row[0]->data);
-            $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $group_id . '"><button>' . __('[:en]Pay Online[:bg]Плащане онлайн', 'us') . '</button></a></div>' , $msg);
+            $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id . '"><button>' . __('[:en]Pay Online[:bg]Плащане онлайн', 'us') . '</button></a></div>' , $msg);
 
             @session_start();
 
@@ -573,7 +629,6 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
         {
             if(current_user_can('administrator'))
             {
-                $admin_cells_header = '<td><b>' . __('Email', 'us') . '</b></td><td><b>' . __('Phone', 'us') . '</b></td><td><b>' . __('Payment ID', 'us') . '</b></td><td><b>' . __('Price', 'us') . '</b></td><td>' . __("Delete",'us') . '</td>';
             }
             else
             {   
@@ -840,6 +895,7 @@ wp_deregister_script('editor-expand');
 	add_shortcode('registration', 'tb_contact_form');
     add_shortcode('payment', 'payment');
     add_shortcode('my_events', 'my_events');
+    add_shortcode('my_events_payments', 'my_events_payments');
 	add_shortcode('start_list', 'start_list');
     add_shortcode('payment_list', 'payment_list');
 
@@ -857,4 +913,30 @@ function qtrans_convertHomeURL($url, $what) {
 
 add_filter('home_url', 'qtrans_convertHomeURL', 10, 2);
 
+function save_extra_user_profile_fields( $user_id ) 
+{
+//echo 'ddddddddddddd' .  $user_id;
+//    if ( !empty( $_POST['club'] ) )
+//        update_user_meta( $user_id, 'club', $_POST['club'] );
+    if ( !empty( $_POST['club'] ) )
+    {  
+        update_user_meta( $user_id, 'club', $_POST['club'], NULL );
+    }
+    if ( !empty( $_POST['year_of_birth'] ) )
+    {   
+        update_user_meta( $user_id, 'year_of_birth', $_POST['year_of_birth'], NULL );
+    }
+    if ( !empty( $_POST['gender'] ) )
+    { 
+        update_user_meta( $user_id, 'gender', $_POST['gender'], NULL );
+    }
+    if ( !empty( $_POST['phone'] ) )
+    { 
+        update_user_meta( $user_id, 'phone', $_POST['phone'], NULL );
+    }
+
+}
+
+add_action( 'personal_options_update', 'save_extra_user_profile_fields' );
+add_action( 'edit_user_profile_update', 'save_extra_user_profile_fields' );
 ?>

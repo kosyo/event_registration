@@ -32,6 +32,11 @@ function my_events($attr)
 {
     global $wpdb;
     $lang = qtrans_getLanguage();
+    $pluginUrl = plugins_url();
+
+    wp_enqueue_script('loadjs', $pluginUrl.'/trunk/registration.js');
+    wp_enqueue_script('loadvalidationjs', $pluginUrl.'/trunk/jquery.validate.min.js');
+    wp_enqueue_style('loadcss', $pluginUrl.'/trunk/registration.css');
 
     if (is_user_logged_in())
     {
@@ -629,6 +634,7 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
         {
             if(current_user_can('administrator'))
             {
+                 $admin_cells_header = '<th><b>' . __('Email', 'us') . '</b></th><th><b>' . __('Phone', 'us') . '</b></th><th><b>' . __('Payment ID', 'us') . '</b></th><th><b>' . __('Price', 'us') . '</b></th><th>' . __("Delete",'us') . '</th>';
             }
             else
             {   
@@ -637,7 +643,7 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
 
             foreach($rows as $row)
             {
-                $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . '<br><table class="start_list_table"><tr><td><b>' . __('Name', 'us') . '</b></td><td><b>' . __('Surname') . '</b></td><td><b>' . __('YOB') . '</b></td><td><b>' .__('Club') . '</b></td><td><b>' . __('Gender') . '</b></td>' . $admin_cells_header . ' <tr>';
+                $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . '<br><table class="footable"><thead><tr><th><b>' . __('Name', 'us') . '</b></th><th><b>' . __('Surname') . '</b></th><th><b>' . __('YOB') . '</b></th><th><b>' .__('Club') . '</b></th><th><b>' . __('Gender') . '</b></th>' . $admin_cells_header . '</thead><tbody>';
                 $user_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_users MEU WHERE MEU.event_distance_id = %d order by id", $row->id));
                 if($user_rows == NULL)
                 {   
@@ -668,7 +674,7 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                     }
                     $output .=  '<tr><td>' . $user->first_name . '</td><td>' . $user->last_name . '</td><td>' . $user->year_of_birth . '</td><td>' . $user->club . '</td><td>' . $gender . '</td>' . $admin_cells .'</tr>';
                 }
-                $output .= '</table>';        
+                $output .= '</tbody></table>';        
             }
         }
 
@@ -939,4 +945,21 @@ function save_extra_user_profile_fields( $user_id )
 
 add_action( 'personal_options_update', 'save_extra_user_profile_fields' );
 add_action( 'edit_user_profile_update', 'save_extra_user_profile_fields' );
+
+add_action( 'wp_login', 'redirect_on_login' ); // hook failed login
+function redirect_on_login() {
+    $referrer = $_SERVER['HTTP_REFERER'];
+    $homepage = get_option('siteurl');
+    if (strstr($referrer, 'incorrect')) {
+        wp_redirect( $homepage );
+        exit;
+    } elseif (strstr($referrer, 'empty')) {
+        wp_redirect( $homepage );
+        exit;
+    } else {  
+        wp_redirect( $referrer );
+        exit;
+    }
+}
+
 ?>

@@ -144,7 +144,9 @@ jQuery("#delete_expired_payments").click(function(e)
 
 jQuery(".unjoin_event").click(function()
 {
-alert("ssss");
+    if(confirm('Are you sure?'))
+    {
+
                 var ajaxReq = {
                     type: 'POST',
                     url: ajaxurl,
@@ -171,7 +173,7 @@ alert("ssss");
                 };
                 
                 jQuery.ajax(ajaxReq);
-
+   }
 
 });
 

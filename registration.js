@@ -144,7 +144,7 @@ jQuery("#delete_expired_payments").click(function(e)
 
 jQuery(".unjoin_event").click(function()
 {
-    if(confirm('Are you sure?'))
+    if(confirm(are_you_sure))
     {
 
                 var ajaxReq = {

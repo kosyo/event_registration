@@ -16,6 +16,10 @@ function pluginname_ajaxurl() {
 var ajaxurl = '<?php 
         echo admin_url('admin-ajax.php?lang=' . qtrans_getLanguage() );
 ?>';
+var are_you_sure = '<?php
+        echo __('Are you sure?','event-registration');
+?>';
+
 </script>
 <?php
 }
@@ -44,7 +48,7 @@ function my_events($attr)
     }
     else
     {   
-        $events_unjoin = _("Please log in.");
+        $events_unjoin = __("Please log in.", 'event-registration');
         $user_id = -1;
     }
 
@@ -59,18 +63,18 @@ function my_events($attr)
         WHERE
         MEU.user_id = $user_id
         ORDER BY MEU.payment, MEU.group_id DESC");
-    $events_unjoin .= '<table class="events_table"><th>' . __("[:en]Event[:bg]Събитие") . '</th><th>' . __("[:en]Unjoin[:bg]Отказване") . '</th>';
+    $events_unjoin .= '<table class="events_table"><th>' . __("[:en]Event[:bg]Събитие", 'event-registration') . '</th><th>' . __("[:en]Unjoin[:bg]Отказване", 'event-registration') . '</th>';
     foreach($rows as $row)
     {
         $events_unjoin .= '<tr class="unjoin_event_row">'; 
         $events_unjoin .= '<td>' . $row->{name_ . $lang} . '</td>';
         if(!$row->payment)
         {
-            $events_unjoin .= '<td><button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button></td>';
+            $events_unjoin .= '<td><button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin', 'event-registration') . '</button></td>';
         } 
         else
         {
-//            $events_unjoin .= '<td>' . __('[:en]Payed[:bg]Платено', 'us') . '</td>';
+//            $events_unjoin .= '<td>' . __('[:en]Payed[:bg]Платено', 'event-registration') . '</td>';
             $events_unjoin .= '<td></td>';
 
         }
@@ -78,7 +82,7 @@ function my_events($attr)
     $events_unjoin .= '</table>';
     if(!isset($events_unjoin) && isset($attr['unjoin']))
     {
-        $unjoin_title = '<div class="title">'.__("There are no events.",'us') .'</div>';
+        $unjoin_title = '<div class="title">'.__("There are no events.",'event-registration') .'</div>';
     }
     else
     {
@@ -122,19 +126,19 @@ function my_events_payments($attr)
         $events_unjoin .= '<td>' . $row->{name_ . $lang} . '</td>';
         if(!$row->payment)
         {
-                $events_unjoin .= '<td><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $row->group_id . '"><button>' . __('Pay Online', 'us') . '</button></a>';
+                $events_unjoin .= '<td><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $row->group_id . '"><button>' . __('Pay Online', 'event-registration') . '</button></a>';
             $events_unjoin .= '</td>';
 //            $events_unjoin .= '<td><button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button></td>';
         } 
         else
         {
-            $events_unjoin .= '<td>' . __('[:en]Payed[:bg]Платено', 'us') . '</td>';
+            $events_unjoin .= '<td>' . __('[:en]Payed[:bg]Платено', 'event-registration') . '</td>';
         }
     }
     $events_unjoin .= '</table>';
     if(!isset($events_unjoin) && isset($attr['unjoin']))
     {
-        $unjoin_title = '<div class="title">'.__("There are no events.",'us') .'</div>';
+        $unjoin_title = '<div class="title">'.__("There are no events.",'event-registration') .'</div>';
     }
     else
     {
@@ -148,7 +152,7 @@ function tb_contact_form($attr)
 	{
         if(current_user_can('administrator') && !isset($attr['unjoin']))
         {
-            $output .= '<div id="payment_confirm"><form action="" method="post" id="payment_form">Payment ID: <input type="text" name="payment_id"><input type="submit" id="payed" value="' . __('Payed', 'us') . '"><input type="submit" id="without_fee" value="' . __('Without fee', 'us') . '"><input type="submit" id="view_price" value="' . __('View Price', 'us') . '"></form></div><div><button id="delete_expired_payments" data-organization_id="'. $attr['organization_id'] . '">' . __('Delete expired partial payments') . '</button></div>';
+            $output .= '<div id="payment_confirm"><form action="" method="post" id="payment_form">Payment ID: <input type="text" name="payment_id"><input type="submit" id="payed" value="' . __('Payed', 'event-registration') . '"><input type="submit" id="without_fee" value="' . __('Without fee', 'event-registration') . '"><input type="submit" id="view_price" value="' . __('View Price', 'event-registration') . '"></form></div><div><button id="delete_expired_payments" data-organization_id="'. $attr['organization_id'] . '">' . __('Delete expired partial payments') . '</button></div>';
   
         }
 
@@ -178,7 +182,7 @@ function tb_contact_form($attr)
                                     AND ME.organization_id = %d
                          ORDER BY MEU.group_id, ME.ordering, ME.id", $attr['organization_id']));
         $i = 0;
-        $events_unjoin .= '<table class="events_table"><th>' . __("[:en]Event[:bg]Събитие") . '</th><th>' . __("[:en]Payment[:bg]Плащане") . '</th><th></th>';
+        $events_unjoin .= '<table class="events_table"><th>' . __("[:en]Event[:bg]Събитие", 'event-registration') . '</th><th>' . __("[:en]Payment[:bg]Плащане", 'event-registration') . '</th><th></th>';
         foreach($rows as $row)
         {
             $i++;
@@ -208,7 +212,7 @@ function tb_contact_form($attr)
         }
         if(!isset($events) && !isset($attr['unjoin']))
         {
-            $new_events_title = '<div class="title">'.__("There are no events",'us') .'</div>';
+            $new_events_title = '<div class="title">'.__("There are no events",'event-registration') .'</div>';
         }
         else
         {
@@ -231,24 +235,24 @@ function tb_contact_form($attr)
         $output .= '<div id="content"> <div id="error_box"></div>' . $unjoin_title . $events_unjoin . $new_events_title . $events;
 if (!is_user_logged_in() && !isset($attr['unjoin']))
 {
-    $required_msg = __('This field is required.', 'us');
+    $required_msg = __('This field is required.', 'event-registration');
  	$output .= ' 
-		<div><label>'.__('First name', 'us').'</label></div>	
+		<div><label>'.__('First name', 'event-registration').'</label></div>	
   		<div><input type="text" name="first_name" data-rule-required="true" data-msg-required="' . $required_msg . '"></div>
 		
-		<div><label>'.__('Last name', 'us').'</label></div>	
+		<div><label>'.__('Last name', 'event-registration').'</label></div>	
   		<div><input type="text" name="last_name" data-rule-required="true" data-msg-required="' . $required_msg . '"></div>
-		<div><label>'.__('Gender', 'us').'</label></div>
+		<div><label>'.__('Gender', 'event-registration').'</label></div>
 		<div>
 		<select name="gender" data-rule-required="true" data-msg-required="' . $required_msg . '">
   			<option value="male">-</option>
-            <option value="male">Male</option>
-			<option value="female">Female</option>
+            <option value="male">' . __('Male', 'event-registration') . '</option>
+			<option value="female">' . __('Female', 'event-registration') . '</option>
 		</select>
-	 	<div><label>'.__('Email', 'us').'</label></div>	
+	 	<div><label>'.__('Email', 'event-registration').'</label></div>	
   		<div><input type="email" name="email" data-rule-required="true" data-msg-required="' . $required_msg . '"></div>
 		
- 		<div><label>'.__('Year of birth', 'us').'</label></div>	
+ 		<div><label>'.__('Year of birth', 'event-registration').'</label></div>	
         <div>
        <select name="year_of_birth" id="year_of_birth" data-rule-required="true" data-msg-required="' . $required_msg . '">
  <option value="">-</option>
@@ -316,10 +320,10 @@ if (!is_user_logged_in() && !isset($attr['unjoin']))
 </select> 
         </div>
 		
-		<div><label>'.__('Phone number', 'us').'</label></div>	
+		<div><label>'.__('Phone number', 'event-registration').'</label></div>	
 		<div><input type="text" name="phone" data-rule-required="true" data-msg-required="' . $required_msg . '"></div>
 
-		<div><label>'.__('Club', 'us').'</label></div>
+		<div><label>'.__('Club', 'event-registration').'</label></div>
 		<div><input type="text" name="club"></div>												
 		
 		
@@ -327,7 +331,7 @@ if (!is_user_logged_in() && !isset($attr['unjoin']))
 }
 if(isset($events) && $events != '')
 {
-    $output .= '<input type="submit" id="register" value="' . __('[:en]Register[:bg]Регистрация', 'us') . '"></form>';
+    $output .= '<input type="submit" id="register" value="' . __('[:en]Register[:bg]Регистрация', 'event-registration') . '"></form>';
 }
 
 $output .= '</div>';
@@ -428,7 +432,7 @@ echo is_object($_POST['club']);
                             $events_name .= $event->{name_ . $lang} . ", ";
                         }
 
-                        $response = array ('success' => 0, 'msg' => sprintf(__("[:en]There is a problem with your registration. You are already registered for %s events. Please uncheck these events and try again.[:bg]Вие вече сте регистрирани за следните събития: %s. Моля не отбелязвайте тези събития и опитайте отново."), substr($events_name, 0, -2)), "us");
+                        $response = array ('success' => 0, 'msg' => sprintf(__("[:en]There is a problem with your registration. You are already registered for %s events. Please uncheck these events and try again.[:bg]Вие вече сте регистрирани за следните събития: %s. Моля не отбелязвайте тези събития и опитайте отново.",'event-registration'), substr($events_name, 0, -2)), "us");
                         echo json_encode($response);
                         die();
                     }
@@ -443,7 +447,7 @@ echo is_object($_POST['club']);
 
             if(!$have_event)
             {
-                $response = array ('success' => 0, 'msg' => __("[:en]Please select at least one event.[:bg]Моля изберете поне едно събитие.", "us"));
+                $response = array ('success' => 0, 'msg' => __("[:en]Please select at least one event.[:bg]Моля изберете поне едно събитие.", 'event-registration'));
                 echo json_encode($response);
                 die();
             }
@@ -461,7 +465,7 @@ echo is_object($_POST['club']);
             $msg_row = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE code = 'registration_confirmation' AND lang = %s", $lang));
                 
             $msg = str_replace('{EVENTNAMES}', substr($event_names, 0, -2), $msg_row[0]->data);
-            $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id . '"><button>' . __('[:en]Pay Online[:bg]Плащане онлайн', 'us') . '</button></a></div>' , $msg);
+            $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id . '"><button>' . __('[:en]Pay Online[:bg]Плащане онлайн', 'event-registration') . '</button></a></div>' , $msg);
 
             @session_start();
 
@@ -493,20 +497,20 @@ echo is_object($_POST['club']);
 
 			if (in_array(@$smof_data['contact_form_name_field'], array('Shown, required', 'Shown, not required')))
 			{
-				$body .= __('Name', 'us').": ".addslashes($_POST['name'])."\n";
+				$body .= __('Name', 'event-registration').": ".addslashes($_POST['name'])."\n";
 			}
 
 			if (in_array(@$smof_data['contact_form_email_field'], array('Shown, required', 'Shown, not required')))
 			{
-				$body .= __('Email', 'us').": ".addslashes($_POST['email'])."\n";
+				$body .= __('Email', 'event-registration').": ".addslashes($_POST['email'])."\n";
 			}
 
 			if (in_array(@$smof_data['contact_form_phone_field'], array('Shown, required', 'Shown, not required')))
 			{
-				$body .= __('Phone', 'us').": ".addslashes($_POST['phone'])."\n";
+				$body .= __('Phone', 'event-registration').": ".addslashes($_POST['phone'])."\n";
 			}
 
-			$body .= "\n".__('Message', 'us').":\n".addslashes($_POST['message']);
+			$body .= "\n".__('Message', 'event-registration').":\n".addslashes($_POST['message']);
 			$headers = '';
 			$response = array ('success' => 1, msg => $msg);
             $wpdb->query( "COMMIT;" );
@@ -578,8 +582,8 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
 <form action="https://www.epay.bg/" method=post>
 <table class=epay-view cellspacing=1 cellpadding=4 width=350>
 <tr>
-<td class=epay-view-header align=center>Описание</td>
-<td class=epay-view-header align=center>Сума</td>
+<td class=epay-view-header align=center>' . __('Description', 'event-registration') . '</td>
+<td class=epay-view-header align=center>' . __('Amount', 'event-registration') . '</td>
 </tr>
 <tr>
 <td class=epay-view-value><b>' . $event_names . '</b></td>
@@ -587,12 +591,12 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
 </tr>
 <tr>
 <td colspan=2 class=epay-view-name>
-<input class=epay-button type=submit name=BUTTON:EPAYNOW value="' . __('Pay on-line', 'us') . '">
+<input class=epay-button type=submit name=BUTTON:EPAYNOW value="' . __('Pay online', 'event-registration') . '">
 </td>
 </tr>
 <tr>
 <td colspan=2 class=epay-view-name style="white-space: normal; font-size: 10">
-' . __('Payment is processed by') . ' <a class=epay href="https://www.epay.bg/">ePay.bg</a>
+' . __('Payment is processed by', 'event-registration') . ' <a class=epay href="https://www.epay.bg/">ePay.bg</a>
 </td>
 </tr>
 </table>
@@ -628,13 +632,13 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
         $rows = $wpdb->get_results($wpdb->prepare("SELECT MED.* FROM marathon_events_distances MED JOIN marathon_events ME ON ME.unique_id = MED.event_id WHERE ME.unique_id = %s order by MED.ordering, MED.id", $attr['event_id']));
         if($rows == NULL)
         {
-            $output .= __('No users are registered for this event yet. '.$attr['event_id'], 'us');
+            $output .= __('No users are registered for this event yet. '.$attr['event_id'], 'event-registration');
         }
         else
         {
             if(current_user_can('administrator'))
             {
-                 $admin_cells_header = '<th><b>' . __('Email', 'us') . '</b></th><th><b>' . __('Phone', 'us') . '</b></th><th><b>' . __('Payment ID', 'us') . '</b></th><th><b>' . __('Price', 'us') . '</b></th><th>' . __("Delete",'us') . '</th>';
+                 $admin_cells_header = '<th><b>' . __('Email', 'event-registration') . '</b></th><th><b>' . __('Phone', 'event-registration') . '</b></th><th><b>' . __('Payment ID', 'event-registration') . '</b></th><th><b>' . __('Price', 'event-registration') . '</b></th><th>' . __("Delete",'event-registration') . '</th>';
             }
             else
             {   
@@ -643,11 +647,11 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
 
             foreach($rows as $row)
             {
-                $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . '<br><table class="footable"><thead><tr><th><b>' . __('Name', 'us') . '</b></th><th><b>' . __('Surname') . '</b></th><th><b>' . __('YOB') . '</b></th><th><b>' .__('Club') . '</b></th><th><b>' . __('Gender') . '</b></th>' . $admin_cells_header . '</thead><tbody>';
+                $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . '<br><table class="footable"><thead><tr><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Surname') . '</b></th><th><b>' . __('YOB') . '</b></th><th><b>' .__('Club') . '</b></th><th><b>' . __('Gender') . '</b></th>' . $admin_cells_header . '</thead><tbody>';
                 $user_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_users MEU WHERE MEU.event_distance_id = %d order by id", $row->id));
                 if($user_rows == NULL)
                 {   
-                    $output .= '</table>' . __('No users are registered for this event yet!', 'us') . '</br></br>';
+                    $output .= '</table>' . __('No users are registered for this event yet!', 'event-registration') . '</br></br>';
                     next;
                 }  
                 foreach($user_rows as $user_row)
@@ -658,11 +662,11 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                     $user = get_userdata($user_row->user_id);
                     if($user->gender == 'male')
                     {
-                        $gender = __('Male', 'us');
+                        $gender = __('Male', 'event-registration');
                     }
                     else if (($user->gender == 'female'))
                     {
-                        $gender = __('Female', 'us');
+                        $gender = __('Female', 'event-registration');
                     }
                     if(current_user_can('administrator'))
                     {   
@@ -913,7 +917,10 @@ wp_deregister_script('editor-expand');
     }
 
 function qtrans_convertHomeURL($url, $what) {
-    if($what=='/') return qtrans_convertURL($url);
+    if(function_exists('qtrans_convertURL'))
+    {
+        if($what=='/') return qtrans_convertURL($url);
+    }
     return $url;
 }
 
@@ -960,6 +967,16 @@ function redirect_on_login() {
         wp_redirect( $referrer );
         exit;
     }
+}
+
+add_action( 'plugins_loaded', 'myplugin_load_textdomain' );
+/**
+ *  * Load plugin textdomain.
+ *   *
+ *    * @since 1.0.0
+ *     */
+function myplugin_load_textdomain() {
+      load_plugin_textdomain( 'event-registration', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' ); 
 }
 
 ?>

@@ -245,7 +245,7 @@ if (!is_user_logged_in() && !isset($attr['unjoin']))
 		<div><label>'.__('Gender', 'event-registration').'</label></div>
 		<div>
 		<select name="gender" data-rule-required="true" data-msg-required="' . $required_msg . '">
-  			<option value="male">-</option>
+  			<option value="">-</option>
             <option value="male">' . __('Male', 'event-registration') . '</option>
 			<option value="female">' . __('Female', 'event-registration') . '</option>
 		</select>
@@ -387,7 +387,7 @@ echo is_object($_POST['club']);
                     $mail[0]->data = str_replace('{PASS}', $pass, $mail[0]->data);
                     $mail[0]->data = str_replace('{PASS_RESET_LINK}', password_reset_link($_POST['email']), $mail[0]->data);
                     
-                    mail("kosyokk@gmail.com",$mail[0]->title, $mail[0]->data);
+                    wp_mail($_POST['email'], $mail[0]->title, $mail[0]->data, 'From: "marathon" <noreply@marathon.bg>');
                 }
 			}
 			else
@@ -458,15 +458,23 @@ echo is_object($_POST['club']);
 
             if(isset($mail[0]->data))
             {
-               $mail[0]->data = str_replace('{EPAY}', get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id, $mail[0]->data);
-               mail("kosyokk@gmail.com", $mail[0]->title, str_replace('{EVENTNAMES}', $event_names, $mail[0]->data));
+                $mail[0]->data = str_replace('{EPAY}', get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id, $mail[0]->data);
+                if(isset($_POST['email']))
+                {
+                    $email = $_POST['email'];
+                }
+                else
+                {
+                    $curr_user = wp_get_current_user();
+                    $email = $curr_user->user_email;
+                }    
+                wp_mail($email, $mail[0]->title, str_replace('{EVENTNAMES}', $event_names, $mail[0]->data), 'From: "marathon" <noreply@marathon.bg>');
             }
 
             $msg_row = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE code = 'registration_confirmation' AND lang = %s", $lang));
                 
-            $msg = str_replace('{EVENTNAMES}', substr($event_names, 0, -2), $msg_row[0]->data);
+            $msg = str_replace('{EVENTNAMES}', $event_names, $msg_row[0]->data);
             $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id . '"><button>' . __('[:en]Pay Online[:bg]Плащане онлайн', 'event-registration') . '</button></a></div>' , $msg);
-
             @session_start();
 
 			global $smof_data;
@@ -512,8 +520,8 @@ echo is_object($_POST['club']);
 
 			$body .= "\n".__('Message', 'event-registration').":\n".addslashes($_POST['message']);
 			$headers = '';
-			$response = array ('success' => 1, msg => $msg);
             $wpdb->query( "COMMIT;" );
+			$response = array ('success' => 1, msg => $msg);
     		
             echo json_encode($response);
 			die();
@@ -601,11 +609,11 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
 </tr>
 </table>
 <input type=hidden name=PAGE value="paylogin">
-<input type=hidden name=MIN value="1682609015">
+<input type=hidden name=MIN value="5831610050">
 <input type=hidden name=INVOICE value="">
 <input type=hidden name=TOTAL value="' . $price . '">
 <input type=hidden name=DESCR value="(' . $payment_id . ') ' . $event_names_en . '">
-<input type=hidden name=URL_OK value=" '.  get_site_url() . '/' . $lang . '/payment_confirmation?events=' . json_encode($events_arr) . '>
+<input type=hidden name=URL_OK value=" '.  get_site_url() . '/' . $lang . '/payment_confirmation>
 <input type=hidden name=URL_CANCEL value="https://www.epay.bg/?p=cancel">
 </form>
                     ';
@@ -651,7 +659,7 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                 $user_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_users MEU WHERE MEU.event_distance_id = %d order by id", $row->id));
                 if($user_rows == NULL)
                 {   
-                    $output .= '</table>' . __('No users are registered for this event yet!', 'event-registration') . '</br></br>';
+                    $output .= '</table>'; //. __('No users are registered for this event yet!', 'event-registration') . '</br></br>';
                     next;
                 }  
                 foreach($user_rows as $user_row)
@@ -679,6 +687,7 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                     $output .=  '<tr><td>' . $user->first_name . '</td><td>' . $user->last_name . '</td><td>' . $user->year_of_birth . '</td><td>' . $user->club . '</td><td>' . $gender . '</td>' . $admin_cells .'</tr>';
                 }
                 $output .= '</tbody></table>';        
+                
             }
         }
 
@@ -877,7 +886,7 @@ function password_reset_link($login) {
         $wp_hasher = new PasswordHash( 8, true );
     }
     $hashed = $wp_hasher->HashPassword( $key );
-    $wpdb->update( $wpdb->users, array( 'user_activation_key' => $hashed ), array( 'user_login' => $user_login ) );
+    $wpdb->update( $wpdb->users, array( 'user_activation_key' => $key ), array( 'user_login' => $user_login ) );
 
     return network_site_url("wp-login.php?action=rp&key=$key&login=" . rawurlencode($user_login), 'login');
 

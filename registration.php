@@ -217,6 +217,9 @@ function tb_contact_form($attr)
            }
 
         }
+    $email_default_value = 'default@default.default';
+    $phone_default_value = 'NO_PHONE';
+    $admin_accept_rules = 'checked';
 }
 
 
@@ -307,7 +310,7 @@ if ((!is_user_logged_in() && !isset($attr['unjoin'])) || current_user_can('admin
 			<option value="female">' . __('Female', 'event-registration') . '</option>
 		</select>
 	 	<div><label>'.__('Email', 'event-registration').'</label></div>	
-  		<div><input type="email" name="email" data-rule-required="true" data-msg-required="' . $required_msg . '"></div>
+  		<div><input type="email" name="email" value="' . $email_default_value . '" data-rule-required="true" data-msg-required="' . $required_msg . '"></div>
 		
  		<div><label>'.__('Year of birth', 'event-registration').'</label></div>	
         <div>
@@ -378,7 +381,7 @@ if ((!is_user_logged_in() && !isset($attr['unjoin'])) || current_user_can('admin
         </div>
 		
 		<div><label>'.__('Phone number', 'event-registration').'</label></div>	
-		<div><input type="text" name="phone" data-rule-required="true" data-msg-required="' . $required_msg . '"></div>
+		<div><input type="text" name="phone" data-rule-required="true" value="' . $phone_default_value . '" data-msg-required="' . $required_msg . '"></div>
 
 		<div><label>'.__('Club', 'event-registration').'</label></div>
 		<div><input type="text" name="club"></div>												
@@ -390,7 +393,7 @@ $msg = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE 
 if(isset($events) && $events != '')
 {
     $output .= '
-        <div><input type="checkbox" name="accept_terms" data-rule-required="true" data-msg-required="' . $required_msg . '">
+        <div><input type="checkbox" name="accept_terms" data-rule-required="true" ' .  $admin_accept_rules . ' data-msg-required="' . $required_msg . '">
         '. $msg[0]->data .'
         </div>
 
@@ -461,7 +464,7 @@ $output .= '</div>';
                     $mail[0]->data = str_replace('{PASS}', $pass, $mail[0]->data);
                     $mail[0]->data = str_replace('{PASS_RESET_LINK}', password_reset_link($email), $mail[0]->data);
 
-#                    if(!current_user_can('administrator'))
+                    if(!current_user_can('administrator'))
                     {
                         wp_mail($_POST['email'], $mail[0]->title, $mail[0]->data, 'From: "marathon" <office@marathon.bg>');
                     }
@@ -784,6 +787,78 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
 
         return $output;
 	}
+
+	function ranking($attr)
+	{
+        $lang = qtrans_getLanguage();
+        $pluginUrl = plugins_url();
+        wp_enqueue_script('loadjs', $pluginUrl.'/trunk/registration.js');
+        wp_enqueue_script('loadvalidationjs', $pluginUrl.'/trunk/jquery.validate.min.js');
+        wp_enqueue_style('loadcss', $pluginUrl.'/trunk/registration.css');
+
+        global $wpdb;
+
+        $output = '<div id="error_box"></div>';
+        $event =  $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events WHERE unique_id = %s", $attr['event_id']));
+
+        $rows = $wpdb->get_results($wpdb->prepare("SELECT MED.* FROM results R JOIN marathon_events_distances MED ON MED.id = R.event_user_id JOIN marathon_events ME ON ME.unique_id = MED.event_id WHERE ME.unique_id = %s order by MED.ordering, MED.id", $attr['event_id']));
+        if($rows == NULL)
+        {
+//            $output .= __('No users are registered for this event yet. '.$attr['event_id'], 'event-registration');
+        }
+        else
+        {
+            if(current_user_can('administrator'))
+            {
+                 $admin_cells_header = '<th><b>' . __('Email', 'event-registration') . '</b></th><th><b>' . __('Phone', 'event-registration') . '</b></th><th><b>' . __('Payment ID', 'event-registration') . '</b></th><th><b>' . __('Price', 'event-registration') . '</b></th><th>' . __("Delete",'event-registration') . '</th>';
+            }
+            else
+            {   
+                $admin_cells_header = '';
+            }   
+
+            foreach($rows as $row)
+            {
+                    $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . '<br><table class="footable"><thead><tr><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Surname') . '</b></th><th><b>' . __('YOB') . '</b></th><th><b>' .__('Club') . '</b></th><th><b>' . __('Gender') . '</b></th>' . $admin_cells_header . '</thead><tbody>';
+                $user_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM results R JOIN marathon_events_users MEU ON R.event_user_id = MEU.id WHERE MEU.event_distance_id = %d order by id", $row->id));
+                if($user_rows == NULL)
+                {   
+                    $output .= '</table>'; //. __('No users are registered for this event yet!', 'event-registration') . '</br></br>';
+                    next;
+                }  
+                foreach($user_rows as $user_row)
+                {
+                    $events_count = $wpdb->get_var($wpdb->prepare("SELECT count(*) FROM marathon_events_users MEU WHERE MEU.group_id = %d AND MEU.payment = false", $user_row->group_id));
+                    $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
+
+                    $user = get_userdata($user_row->user_id);
+                    if($user->gender == 'male')
+                    {
+                        $gender = __('Male', 'event-registration');
+                    }
+                    else if (($user->gender == 'female'))
+                    {
+                        $gender = __('Female', 'event-registration');
+                    }
+                    if(current_user_can('administrator'))
+                    {   
+                        $admin_cells = '<td>' . $user->user_email . '</td><td>' . $user->phone . '</td><td>' . $user_row->group_id . '</td><td>' . sprintf("%.2f", $payment[0]->price) .  '</td><td><button class="unjoin_event" data-id="' . $user_row->id . '">Delete</button></td><td><button class="payed" data-id="' . $user_row->id . '">Payed</button></td><td><button class="payed" data-withoutfee="1" data-id="' . $user_row->id . '">Free fee</button></td>';
+                    }
+                    else
+                    {
+                        $admin_cells = '';
+                    }
+                    $output .=  '<tr><td>' . $user->first_name . '</td><td>' . $user->last_name . '</td><td>' . $user->year_of_birth . '</td><td>' . $user->club . '</td><td>' . $gender . '</td>' . $admin_cells .'</tr>';
+                }
+                $output .= '</tbody></table>';        
+                
+            }
+        }
+
+
+        return $output;
+	}
+
 /*
 function payment_confirmation($atts)
 {
@@ -1006,6 +1081,8 @@ wp_deregister_script('editor-expand');
     add_shortcode('my_events', 'my_events');
     add_shortcode('my_events_payments', 'my_events_payments');
 	add_shortcode('start_list', 'start_list');
+    add_shortcode('ranking', 'ranking');
+
     add_shortcode('payment_list', 'payment_list');
 
 //    add_shortcode('payment_confirmation', 'payment_confirmation');

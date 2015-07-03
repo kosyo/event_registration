@@ -35,6 +35,40 @@ console.log(jQuery('#payment_form').find("input[name=payment_id]").val());
                 
 });                 
 
+jQuery(".payed").click(function(e)
+{
+    e.preventDefault();
+    var ajaxReq = {
+                    type: 'POST',
+                    url: ajaxurl,
+                    dataType: 'json',
+                    data: {
+                        action: 'pay',
+                        payment_id: jQuery(this).attr('data-id'),
+                        without_fee: jQuery(this).attr('data-withoutfee'),
+
+                    },
+                    success: function(data){
+                        if (data.success){
+                            jQuery("#error_box").html(data.msg);
+                        } else
+                        {
+    
+                            jQuery("#error_box").html(data.msg);
+                            jQuery('html,body').animate({
+                                scrollTop: jQuery("#error_box").offset().top
+                            }, 'slow');
+                        }
+                    },
+                    error: function(ts){
+                        alert('error');
+                    }
+                };
+    
+                jQuery.ajax(ajaxReq);
+
+});
+
 jQuery("#without_fee").click(function(e)
 {
                 e.preventDefault();

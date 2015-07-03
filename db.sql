@@ -71,3 +71,39 @@ create table payments
     created_at timestamp not null default CURRENT_TIMESTAMP,
     foreign key (organization_id) references organizations(id)
 );
+
+create table checkpoints
+(
+    id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name text not null, 
+    event_discipline_id int not null,
+    is_final boolean not null default false,
+    foreign key (event_discipline_id) references marathon_events_distances(id)
+);
+
+create table categories
+(
+    id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name text NOT NULL,
+    start_year int NOT NULL,
+    end_year int NOT NULL,
+    gender text not null,
+    event_discipline_id int not null,
+    name_short text not null,
+    foreign key(event_discipline_id) references marathon_events_distances(id)
+);
+
+create table results 
+(
+    id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    event_user_id int not null,
+    checkpoint_id int not null,
+    time int(11) NOT NULL,
+    foreign key(event_user_id) references marathon_events_users(id),
+    foreign key(checkpoint_id) references checkpoints(id)
+);
+
+alter table marathon_events_users add column start_number int;
+alter table marathon_events_users add column start_time int(11);
+alter table marathon_events_users add column category_id int;
+alter table marathon_events_users add constraint FOREIGN KEY (category_id) REFERENCES categories(id);

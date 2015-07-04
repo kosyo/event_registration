@@ -107,3 +107,13 @@ alter table marathon_events_users add column start_number int;
 alter table marathon_events_users add column start_time int(11);
 alter table marathon_events_users add column category_id int;
 alter table marathon_events_users add constraint FOREIGN KEY (category_id) REFERENCES categories(id);
+
+
+UPDATE `marathon_events_users` W SET category_id  = (SELECT id from categories C where start_year > (SELECT WUM.meta_value from wp_users WU JOIN wp_usermeta WUM ON  WUM.user_id = WU.id and WUM.meta_key = 'year_of_birth' WHERE WU.id = W.user_id) 
+                                                         and 
+                                                                                                             (SELECT WUM.meta_value from wp_users WU JOIN wp_usermeta WUM ON  WUM.user_id = WU.id and WUM.meta_key = 'year_of_birth' WHERE WU.id = W.user_id) < end_year and C.gender = (SELECT WUM.meta_value from wp_users WU JOIN wp_usermeta WUM ON  WUM.user_id = WU.id and WUM.meta_key = 'gender' WHERE WU.id = W.user_id)) where event_distance_id = 19 and W.user_id = 444
+
+
+
+
+

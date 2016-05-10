@@ -900,7 +900,7 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
             foreach($rows as $row)
             {
                 $i = 0;
-                $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . '<br><table class="footable"><thead><tr><th>№</th><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Surname') . '</b></th><th><b>' . __('YOB') . '</b></th><th><b>' .__('Club') . '</b></th><th><b>' . __('Gender') . '</b></th><th><b>' . __('Category') . '</b></th>' . $admin_cells_header . '</thead><tbody>';
+                $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . '<br><table class="footable"><thead><tr><th>№</th><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Surname', 'event-registration') . '</b></th><th><b>' . __('YOB') . '</b></th><th><b>' .__('Club', 'event-registration') . '</b></th><th><b>' . __('Gender',  'event-registration') . '</b></th><th><b>' . __('Category',  'event-registration') . '</b></th>' . $admin_cells_header . '</thead><tbody>';
                 $user_rows = $wpdb->get_results($wpdb->prepare("SELECT MEU.*, c.name_short FROM marathon_events_users MEU left JOIN categories c on c.id = MEU.category_id WHERE MEU.event_distance_id = %d order by MEU.id", $row->id));
                 if($user_rows == NULL)
                 {   
@@ -1049,7 +1049,7 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                 {
                     if($first)
                     { 
-                        $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . ' - Генерално класиране(неофициално) <br><table class="footable"><thead><tr><th><b>' . __('Място', 'event-registration') . '</b></th><th><b>' . __('СН', 'event-registration') . '</b></th><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Фамилия') . '</b></th><th><b>' .__('YOB') . '</b></th><th><b>' .__('Клуб') . '</b></th><th><b>' . __('Пол') . '</b></th><th><b>' . __('К') . '</b></th>';
+                        $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . ' - Генерално класиране(неофициално) <br><table class="footable"><thead><tr><th><b>' . __('Място', 'event-registration') . '</b></th><th><b>' . __('СН', 'event-registration') . '</b></th><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Фамилия') . '</b></th><th><b>' .__('YOB', 'event-registration') . '</b></th><th><b>' .__('Клуб') . '</b></th><th><b>' . __('Пол') . '</b></th><th><b>' . __('К') . '</b></th>';
                         $first = false;
                         $checkpoints_rows = $wpdb->get_results($wpdb->prepare("SELECT DISTINCT C.* FROM checkpoints C JOIN results R ON R.checkpoint_id = C.id where C.event_discipline_id = %d
                             order by ordering", $row->{id})); 

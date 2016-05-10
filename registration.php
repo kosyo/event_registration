@@ -270,7 +270,7 @@ function tb_contact_form($attr)
                         }
                         else
                         {
-                            for($i = 2006; $i > 1925; $i--)
+                            for($i = 2001; $i > 1940; $i--)
                             {
                                 array_push($yob, $i);
                             }
@@ -348,11 +348,6 @@ if ((!is_user_logged_in() && !isset($attr['unjoin'])) || current_user_can('admin
        <select name="year_of_birth" id="year_of_birth" data-rule-required="true" data-msg-required="' . $required_msg . '">
        <option value="">-</option>
 
- <option value="2006">2006</option>
- <option value="2005">2005</option>
- <option value="2004">2004</option>
- <option value="2003">2003</option>
- <option value="2002">2002</option>
  <option value="2001">2001</option>
  <option value="2000">2000</option>
  <option value="1999">1999</option>
@@ -414,21 +409,6 @@ if ((!is_user_logged_in() && !isset($attr['unjoin'])) || current_user_can('admin
  <option value="1943">1943</option>
  <option value="1942">1942</option>
  <option value="1941">1941</option>
- <option value="1940">1940</option>
- <option value="1939">1939</option>
- <option value="1938">1938</option>
- <option value="1937">1937</option>
- <option value="1936">1936</option>
- <option value="1935">1935</option>
- <option value="1934">1934</option>
- <option value="1933">1933</option>
- <option value="1932">1932</option>
- <option value="1931">1931</option>
- <option value="1930">1930</option>
- <option value="1929">1929</option>
- <option value="1928">1928</option>
- <option value="1927">1927</option>
- <option value="1926">1926</option>
 
 </select> 
         </div>
@@ -650,6 +630,8 @@ $insert_id = $wpdb->insert_id;
             if(isset($mail[0]->data))
             {
                 $mail[0]->data = str_replace('{EPAY}', get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id, $mail[0]->data);
+                $mail[0]->data = str_replace('{PAYMENT_ID}', $group_id, $mail[0]->data);
+
                 if(isset($_POST['email']))
                 {
                     $email = $_POST['email'];
@@ -665,7 +647,7 @@ $insert_id = $wpdb->insert_id;
                 } 
                 if(!current_user_can('administrator') && !current_user_can('contributor'))
                 {
-                    wp_mail($email, $mail[0]->title, str_replace('{EVENTNAMES}', $event_names, $mail[0]->data /*. '[:bg]Вие може да платите от тук: {EPAY} или да платите в деня на съзтезанието[:en]You can pay from here: {EPAY} or you can pay in the day of the event.'*/), 'From: "marathon" <office@marathon.bg>');
+                    wp_mail($email, $mail[0]->title, str_replace('{EVENTNAMES}', $event_names, $mail[0]->data /*. '[:bg]Вие може да платите от тук: {EPAY} или да платите в деня на съзтезанието[:en]You can pay from here: {EPAY} or you can pay in the day of the event.'*/), array( 'From: "marathon" <office@marathon.bg>', 'Content-Type: text/html; charset=UTF-8'));
                 }
             }
 
@@ -712,6 +694,8 @@ $insert_id = $wpdb->insert_id;
 #            if($price != '0.00')
             {
                 $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id . '"><button>' . __('[:en]Pay Online[:bg]Плащане онлайн', 'event-registration') . '</button></a></div>' , $msg);
+                $msg = str_replace('{PAYMENT_ID}', $group_id , $msg);
+
             }
 #            else 
 #            {

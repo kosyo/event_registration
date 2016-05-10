@@ -1,5 +1,19 @@
 jQuery(document).ready(function(){
 
+setInterval(function(){ window.location.reload(); }, 300000);
+
+jQuery(".discipline_radio").click(function(e)
+{
+    jQuery('#year_of_birth').children().remove().end();
+    var yob = JSON.parse(jQuery(this).attr("data-yob"));
+
+    jQuery("#year_of_birth").append('<option value="">-</option>');
+
+    for(var i = 0; i < yob.length; i++)
+    {
+        jQuery("#year_of_birth").append('<option value="'+ yob[i] + '">' + yob[i] + '</option>');
+    }
+    });
 
 jQuery("#payed").click(function(e)
 {                       
@@ -255,6 +269,48 @@ jQuery.validator.setDefaults({
                             jQuery('html,body').animate({
                                 scrollTop: jQuery("#error_box").offset().top
                             }, 'slow');
+                        }
+					},
+					error: function(ts){
+ 						alert('error');		
+					}
+				};
+
+                var allInputs = form.find( ":input" );
+                for(x = 0; x < allInputs.length; x++){
+                    if(allInputs[x].type != 'submit')
+                    {
+                        console.log(allInputs[x].type + ' ' + allInputs[x].checked);
+                        if((allInputs[x].type != 'radio' && allInputs[x].type != 'checkbox') || allInputs[x].checked)
+                        {
+                            ajaxReq['data'][allInputs[x].name] = allInputs[x].value;
+                        }
+                    }
+                }
+	
+				jQuery.ajax(ajaxReq);
+
+			return false;
+		});
+
+//TODO sushtiq kato gorniq kod
+		jQuery(this).find('.start_number_form').submit(function(){
+
+            var form = jQuery(this);
+                var ajaxReq = {
+					type: 'POST',
+					url: ajaxurl,
+					dataType: 'json',
+					data: {
+						action: 'startNumber',
+					},
+					success: function(data){
+						if (data.success){
+                          jQuery("#start_number" + form.find('input[name="event_user_id"]').val()).html(form.find('input[name="start_number"]').val());
+                            // jQuery(".status").html('success');
+						} else
+                        {
+                            alert(data.msg);
                         }
 					},
 					error: function(ts){

@@ -19,7 +19,7 @@ insert into `marathon_messages` (code, lang, title, data) values ('registration_
 insert into `marathon_messages` (code, lang, title, data) values ('registration_confirmation', 'bg', 'Успешна регистрация', 'Вие се регистрирахте успешно за {EVENTNAMES}.');
 insert into marathon_messages (code, lang, title, data) values ('register_account_email', 'bg', 'Данни за акаунт', 'Потребителско име: {EMAIL}\nПарола: {PASS}\nАко искате да смените паролата си натиснете тук: {PASS_RESET_LINK}');
 insert into marathon_messages (code, lang, title, data) values ('register_account_email', 'en', 'Information for account', 'User: {EMAIL}\nPassword: {PASS}\nIf you want to change you password click here: {PASS_RESET_LINK}');
-alter table `marathon_events_users` change online_payment payment bool not null default false;
+
 
 alter table `marathon_events_distances` modify event_id varchar(100);
 
@@ -31,87 +31,6 @@ ALTER table `marathon_events` add column name_en text ;
 ALTER table `marathon_events` modify column name_en text not null;
 alter table marathon_events_distances add column ordering int not null;
 
-create table marathon_events_prices
-(
-    id int not null AUTO_INCREMENT PRIMARY KEY,
-    count int not null UNIQUE,
-    price numeric not null 
-);
-
-alter table marathon_events_users add column online_payment bool not null default false;
-
-
-create table marathon_events_users_group_seq
-(
-    id int AUTO_INCREMENT NOT NULL PRIMARY KEY    
-);
-
-alter table `marathon_events_users` add column group_id int not null;
-
-create table organizations
-(
-    id int not null AUTO_INCREMENT PRIMARY KEY,
- lter table marathon_events_prices add column event_discipline_id int , add foreign key event_distances_fk(event_discipline_id) references marathon_event_distances(id);
-   name varchar(100) not null UNIQUE
-);
-
-alter table marathon_events add column organization_id int;
-ALTER table `marathon_events` add foreign key (organization_id) references organizations(id);
-update marathon_events set organization_id = 1 where organization_id is null;
-alter table marathon_events modify column organization_id int not null;
-alter table marathon_events_prices add column organization_id int not null default 1, add foreign key organization_id_fk(organization_id) references organizations(id);
-alter table marathon_events_prices add column event_discipline_id int , add foreign key event_distances_fk(event_discipline_id) references marathon_events_distances(id);
-
-create table payments
-(
-    id int AUTO_INCREMENT NOT NULL PRIMARY KEY,
-    payment_id int not null,
-    organization_id int not null,
-    value numeric,
-    created_at timestamp not null default CURRENT_TIMESTAMP,
-    foreign key (organization_id) references organizations(id)
-);
-
-create table checkpoints
-(
-    id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name text not null, 
-    event_discipline_id int not null,
-    is_final boolean not null default false,
-    foreign key (event_discipline_id) references marathon_events_distances(id)
-);
-
-create table categories
-(
-    id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name text NOT NULL,
-    start_year int NOT NULL,
-    end_year int NOT NULL,
-    gender text not null,
-    event_discipline_id int not null,
-    name_short text not null,
-    foreign key(event_discipline_id) references marathon_events_distances(id)
-);
-
-create table results 
-(
-    id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    event_user_id int not null,
-    checkpoint_id int not null,
-    time int(11) NOT NULL,
-    foreign key(event_user_id) references marathon_events_users(id),
-    foreign key(checkpoint_id) references checkpoints(id)
-);
-
-alter table marathon_events_users add column start_number int;
-alter table marathon_events_users add column start_time int(11);
-alter table marathon_events_users add column category_id int;
-alter table marathon_events_users add constraint FOREIGN KEY (category_id) REFERENCES categories(id);
-
-
-UPDATE `marathon_events_users` W SET category_id  = (SELECT id from categories C where start_year > (SELECT WUM.meta_value from wp_users WU JOIN wp_usermeta WUM ON  WUM.user_id = WU.id and WUM.meta_key = 'year_of_birth' WHERE WU.id = W.user_id) 
-                                                         and 
-                                                                                                             (SELECT WUM.meta_value from wp_users WU JOIN wp_usermeta WUM ON  WUM.user_id = WU.id and WUM.meta_key = 'year_of_birth' WHERE WU.id = W.user_id) < end_year and C.gender = (SELECT WUM.meta_value from wp_users WU JOIN wp_usermeta WUM ON  WUM.user_id = WU.id and WUM.meta_key = 'gender' WHERE WU.id = W.user_id)) where event_distance_id = 19 and W.user_id = 444
 
 
 

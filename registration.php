@@ -126,7 +126,7 @@ function my_events_payments($attr)
         $events_unjoin .= '<td>' . $row->{name_ . $lang} . '</td>';
         if(!$row->payment)
         {
-                $events_unjoin .= '<td><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $row->group_id . '"><button>' . __('Pay Online', 'event-registration') . '</button></a>';
+                $events_unjoin .= '<td>'; //<a href="' . get_site_url() . '/' . $lang . '/payment?payment_id= '. $row->group_id . '"><button>' . __('Pay Online', 'event-registration') . '</button></a>';
             $events_unjoin .= '</td>';
 //            $events_unjoin .= '<td><button class="unjoin_event" data-id="' . $row->marathon_events_users_id . '">' . __('unjoin') . '</button></td>';
         } 
@@ -150,6 +150,8 @@ function my_events_payments($attr)
 }
 function tb_contact_form($attr)
 {
+//     if(current_user_can('administrator'))
+     {
         if(current_user_can('administrator') && !isset($attr['unjoin']))
         {
             $output .= '<div id="payment_confirm"><form action="" method="post" id="payment_form">Payment ID: <input type="text" name="payment_id"><input type="submit" id="payed" value="' . __('Payed', 'event-registration') . '"><input type="submit" id="without_fee" value="' . __('Without fee', 'event-registration') . '"><input type="submit" id="view_price" value="' . __('View Price', 'event-registration') . '"></form></div><div><button id="delete_expired_payments" data-organization_id="'. $attr['organization_id'] . '">' . __('Delete expired partial payments') . '</button></div>';
@@ -179,17 +181,17 @@ function tb_contact_form($attr)
 
 
 
- if(current_user_can('administrator'))
+ if(current_user_can('administrator') || current_user_can('contributor'))
  {
 //TODO tozi kod se povtarq s gorniq samo zaqvkata e razlichna
        $rows = $wpdb->get_results($wpdb->prepare("SELECT ME.*, MEU.event_distance_id, MEU.id AS marathon_events_users_id, MEU.payment, MEU.group_id  FROM marathon_events ME
                                     LEFT JOIN marathon_events_users MEU ON MEU.event_id = ME.id AND MEU.user_id = $user_id
-                                    where ME.start_timestamp > now() 
-                                    or ME.end_timestamp < now()
-                                    AND ME.organization_id = %d
+                                    where 
+                                    ME.organization_id = %d
                          ORDER BY MEU.group_id, ME.ordering, ME.id", $attr['organization_id']));
         $i = 0;
         $events_unjoin .= '<table class="events_table"><th>' . __("[:en]Event[:bg]Събитие", 'event-registration') . '</th><th>' . __("[:en]Payment[:bg]Плащане", 'event-registration') . '</th><th></th>';
+//var_dump($rows);
         foreach($rows as $row)
         {
             $i++;
@@ -197,20 +199,19 @@ function tb_contact_form($attr)
             {
                 $distances = $wpdb->get_results(
                     $wpdb->prepare("SELECT * FROM marathon_events_distances WHERE event_id = %s ORDER BY ordering, id", $row->unique_id));
-
-                $events .= '<div class="event"><b>'. $row->{name_ . $lang} . '</b><div>';
-                $has_distances = false;
-                foreach($distances as $distance)
-                {
-                    $has_distances = true;
-                    $events .= '<input type="radio" name="' . $row->id . '" value="' . $distance->id. '"> ' . $distance->{name_ . $lang}. ' ' ;
-                }
-                if(!$has_distances)
-                {
-                    $rows = $wpdb->insert("marathon_events_distances", array( event_id => $row->unique_id ));
-                    $events .= '<input type="radio" name="' . $row->id . '" value="' . $wpdb->insert_id . '">';
-                }
-                $events .= '</div></div>';
+                    $events .= '<div class="event"><b>'. $row->{name_ . $lang} . '</b><div>';
+                    $has_distances = false;
+                    foreach($distances as $distance)
+                    {
+                        $has_distances = true;
+                        $events .= '<input type="radio" name="' . $row->id . '" value="' . $distance->id. '"> ' . $distance->{name_ . $lang}. ' ' ;
+                    }
+                    if(!$has_distances)
+                    {
+                        $rows = $wpdb->insert("marathon_events_distances", array( event_id => $row->unique_id ));
+                        $events .= '<input type="radio" name="' . $row->id . '" value="' . $wpdb->insert_id . '">';
+                    }
+                    $events .= '</div></div>';
             } 
             else
             {
@@ -220,11 +221,14 @@ function tb_contact_form($attr)
     $email_default_value = 'default@default.default';
     $phone_default_value = 'NO_PHONE';
     $admin_accept_rules = 'checked';
-    $events .= ' <div><label>'.__('Start number', 'event-registration').'</label></div>    
-                        <div><input type="text" name="start_number"/></div>
-                        ';
 }
-
+            if(current_user_can('contributor') || current_user_can('administrator'))
+            {
+                $events .= ' <div><label>'.__('Start number', 'event-registration').'</label></div>    
+                        <div><input type="text" name="start_number"  data-rule-required="true" data-msg-required="' . $required_msg . '"/></div>
+                        ';
+                
+            }
 
 
 
@@ -248,20 +252,44 @@ function tb_contact_form($attr)
             {
                 $distances = $wpdb->get_results( 
                     $wpdb->prepare("SELECT * FROM marathon_events_distances WHERE event_id = %s ORDER BY ordering, id", $row->unique_id));
+                $rows = $wpdb->num_rows;
+                if($rows > 1)
+                {
+                    $events .= '<div class="event"><b>'. $row->{name_ . $lang} . '</b><div>';
+                    $has_distances = false;
+                    foreach($distances as $distance)
+                    {
+                        $yob = array();
+                        $has_distances = true;
+                        if($distance->id == 41)
+                        {
+                            for($i = 2014; $i > 2000; $i--)
+                            {
+                                array_push($yob, $i);
+                            }
+                        }
+                        else
+                        {
+                            for($i = 2006; $i > 1925; $i--)
+                            {
+                                array_push($yob, $i);
+                            }
 
-                $events .= '<div class="event"><b>'. $row->{name_ . $lang} . '</b><div>';
-                $has_distances = false;
-                foreach($distances as $distance)
+                        }
+                        $events .= '<input type="radio" class="discipline_radio" data-yob="' . json_encode($yob) . '" name="' . $row->id . '" value="' . $distance->id. '"> ' . $distance->{name_ . $lang}. ' ' ;
+                    }
+                    if(!$has_distances)
+                    {
+                        $rows = $wpdb->insert("marathon_events_distances", array( event_id => $row->unique_id ));
+                        $events .= '<input type="radio" name="' . $row->id . '" value="' . $wpdb->insert_id . '">';
+                    }
+                    $events .= '</div></div>';
+                }
+                else if($rows == 1)
                 {
                     $has_distances = true;
-                    $events .= '<input type="radio" name="' . $row->id . '" value="' . $distance->id. '"> ' . $distance->{name_ . $lang}. ' ' ;
+                    $events .= '<input type="hidden" name="' . $row->id . '" value="' . $distances[0]->id. '"> ' . $distance->{name_ . $lang}. ' ' ;
                 }
-                if(!$has_distances)
-                {
-                    $rows = $wpdb->insert("marathon_events_distances", array( event_id => $row->unique_id ));
-                    $events .= '<input type="radio" name="' . $row->id . '" value="' . $wpdb->insert_id . '">';
-                }
-                $events .= '</div></div>';
             }   
             else
             {
@@ -296,7 +324,7 @@ function tb_contact_form($attr)
         }
 
         $output .= '<div id="content"> <div id="error_box"></div>' . $unjoin_title . $events_unjoin . $new_events_title . $events;
-if ((!is_user_logged_in() && !isset($attr['unjoin'])) || current_user_can('administrator'))
+if ((!is_user_logged_in() && !isset($attr['unjoin'])) || current_user_can('administrator') || current_user_can('contributor'))
 {
     $required_msg = __('This field is required.', 'event-registration');
  	$output .= ' 
@@ -318,7 +346,15 @@ if ((!is_user_logged_in() && !isset($attr['unjoin'])) || current_user_can('admin
  		<div><label>'.__('Year of birth', 'event-registration').'</label></div>	
         <div>
        <select name="year_of_birth" id="year_of_birth" data-rule-required="true" data-msg-required="' . $required_msg . '">
- <option value="">-</option>
+       <option value="">-</option>
+
+ <option value="2006">2006</option>
+ <option value="2005">2005</option>
+ <option value="2004">2004</option>
+ <option value="2003">2003</option>
+ <option value="2002">2002</option>
+ <option value="2001">2001</option>
+ <option value="2000">2000</option>
  <option value="1999">1999</option>
  <option value="1998">1998</option>
  <option value="1997">1997</option>
@@ -380,6 +416,20 @@ if ((!is_user_logged_in() && !isset($attr['unjoin'])) || current_user_can('admin
  <option value="1941">1941</option>
  <option value="1940">1940</option>
  <option value="1939">1939</option>
+ <option value="1938">1938</option>
+ <option value="1937">1937</option>
+ <option value="1936">1936</option>
+ <option value="1935">1935</option>
+ <option value="1934">1934</option>
+ <option value="1933">1933</option>
+ <option value="1932">1932</option>
+ <option value="1931">1931</option>
+ <option value="1930">1930</option>
+ <option value="1929">1929</option>
+ <option value="1928">1928</option>
+ <option value="1927">1927</option>
+ <option value="1926">1926</option>
+
 </select> 
         </div>
 		
@@ -387,7 +437,8 @@ if ((!is_user_logged_in() && !isset($attr['unjoin'])) || current_user_can('admin
 		<div><input type="text" name="phone" data-rule-required="true" value="' . $phone_default_value . '" data-msg-required="' . $required_msg . '"></div>
 
 		<div><label>'.__('Club', 'event-registration').'</label></div>
-		<div><input type="text" name="club"></div>												
+        <div><input type="text" name="club"></div>					
+
 ';
 }
 
@@ -395,15 +446,21 @@ $msg = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE 
 
 if(isset($events) && $events != '')
 {
+    if($attr["organization_id"] != 2 && $attr["organization_id"] != 3) 
+    {
     $output .= '
         <div><input type="checkbox" name="accept_terms" data-rule-required="true" ' .  $admin_accept_rules . ' data-msg-required="' . $required_msg . '">
         '. $msg[0]->data .'
-        </div>
+        </div>';
+    }
 
+        $output .= '
+<input type="hidden" name="organization_id" value="'. $attr["organization_id"] .'">        
         <input type="submit" id="register" value="' . __('[:en]Enter[:bg]Заяви', 'event-registration') . '"></form>';
 }
 
 $output .= '</div>';
+     }
 		return $output;
 	}
 
@@ -418,7 +475,7 @@ $output .= '</div>';
 		    global $wpdb;
             $wpdb->query( "START TRANSACTION;" );
  
-			if (!is_user_logged_in() || current_user_can('administrator'))
+			if (!is_user_logged_in() || current_user_can('administrator') || current_user_can('contributor'))
 			{
 				$pass = rand(1000,9999);//wp_generate_password( $length=6, $include_standard_special_chars=false );
 //echo is_object($_POST['first_name']);
@@ -467,7 +524,7 @@ $output .= '</div>';
                     $mail[0]->data = str_replace('{PASS}', $pass, $mail[0]->data);
                     $mail[0]->data = str_replace('{PASS_RESET_LINK}', password_reset_link($email), $mail[0]->data);
 
-                    if(!current_user_can('administrator'))
+                    if(!current_user_can('administrator') && !current_user_can('contributor'))
                     {
                         wp_mail($_POST['email'], $mail[0]->title, $mail[0]->data, 'From: "marathon" <office@marathon.bg>');
                     }
@@ -502,18 +559,56 @@ $output .= '</div>';
                     }
                     $have_event = true;
 
+                   if(!current_user_can('administrator') && !current_user_can('contributor'))
+                    {
+                        $_POST[start_number] = null;
+                    } 
+    //var_dump($category_row);
+                    $start_time_rows = $wpdb->get_results($wpdb->prepare('SELECT * FROM marathon_events_users wHERE event_distance_id = %d limit 1', $_POST[$row->id]));
+                    error_log("Payment id " . $group_id . "\n", 3, '/www/marathon.bg/err.log');
+                    $user_row = array (event_distance_id => $_POST[$row->id], user_id => $user_id, event_id => $row->id, group_id => $group_id, start_number =>  $_POST[start_number], start_time => $start_time_rows[0]->start_time);
                     ///TODO krupka tuk zapisvam kategoriq samo za novozaqvilite se useri. Trqbva da se napravi da se zapisva i za registriranite
                     if(isset($_POST[year_of_birth]))                    
                     {
-                         $category_row = $wpdb->get_results($wpdb->prepare("SELECT * FROM categories WHERE start_year >= %d AND %d <= end_year", $_POST[year_of_birth], $_POST[year_of_birth]));
+                        $category_row = $wpdb->get_results($wpdb->prepare("SELECT * FROM categories WHERE start_year >= %d AND %d >= end_year and event_discipline_id = %d and gender = %s", $_POST[year_of_birth], $_POST[year_of_birth], $_POST[$row->id], $_POST['gender'] ));
+                         if($category_row != NULL)
+                         {
+                            $user_row['category_id'] = $category_row[0]->id;
+                         }
                     }
-                    if(!current_user_can('administrator'))
+ 
+					$sth = $wpdb->insert("marathon_events_users", $user_row);
+$insert_id = $wpdb->insert_id;
+                    if(current_user_can('administrator') && current_user_can('contributor'))
                     {
-                        $_POST[start_number] = null;
+            $wpdb->query( "START TRANSACTION;" );
+    $rowsss = $wpdb->get_results($wpdb->prepare("SELECT *
+                                                   FROM marathon_events_users MEU
+                                                   WHERE
+                                                   MEU.start_number = %d 
+                                                   AND MEU.event_distance_id = %d", $_POST['start_number'], $_POST[$row->id]));
+    if($rowsss != NULL)
+    {  
+        if($rowsss[0]->user_id == 0)
+        {
+            $wpdb->update('results', array( 'event_user_id' => $insert_id), array( 'event_user_id' =>  $rowsss[0]->id ));
+            $wpdb->query($wpdb->prepare("DELETE FROM marathon_events_users where id = %d", $rowsss[0]->id));
+        }
+        else
+        {
+            $response = array ('success' => 0, msg => "Този стартов номер вече е даден на друг човек.");
+            echo json_encode($response);
+            die();
+        }
+    }
+
+            $wpdb->query( "COMMIT;" );
+
+
                     }
-                    error_log("Payment id " . $group_id . "\n", 3, '/www/marathon.bg/err.log');
-					$sth = $wpdb->insert("marathon_events_users", array (event_distance_id => $_POST[$row->id], user_id => $user_id, event_id => $row->id, group_id => $group_id, start_number =>  $_POST[start_number], category_id => $category_row[0]->id ));
-                    array_push($events_arr, $wpdb->insert_id);
+               
+//, category_id => $category_row[0]->id));
+                    array_push($events_arr, $insert_id);
 				    if(!$sth)
                     {
                         $events_rows = $wpdb->get_results($wpdb->prepare("SELECT ME.* FROM marathon_events_users MEU 
@@ -548,15 +643,13 @@ $output .= '</div>';
                 die();
             }
             
-            $mail = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE code = 'registration_email_confirmation' AND lang = %s", $lang));
+            $mail = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE code = 'registration_email_confirmation' AND lang = %s and organization_id = %d" , $lang, $_POST['organization_id']));
             $event_names = substr($event_names, 0, -2);
             $event_names_en = substr($event_names_en, 0, -2);
 
             if(isset($mail[0]->data))
             {
                 $mail[0]->data = str_replace('{EPAY}', get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id, $mail[0]->data);
-                $mail[0]->data = str_replace('{PAYMENT_ID}', $group_id, $mail[0]->data);
-
                 if(isset($_POST['email']))
                 {
                     $email = $_POST['email'];
@@ -570,18 +663,60 @@ $output .= '</div>';
                         $email = substr($email, 0, strpos($email, '--'));
                     }
                 } 
-                if(!current_user_can('administrator'))
+                if(!current_user_can('administrator') && !current_user_can('contributor'))
                 {
-                    wp_mail($email, $mail[0]->title, str_replace('{EVENTNAMES}', $event_names, $mail[0]->data), 'From: "marathon" <office@marathon.bg>');
+                    wp_mail($email, $mail[0]->title, str_replace('{EVENTNAMES}', $event_names, $mail[0]->data /*. '[:bg]Вие може да платите от тук: {EPAY} или да платите в деня на съзтезанието[:en]You can pay from here: {EPAY} or you can pay in the day of the event.'*/), 'From: "marathon" <office@marathon.bg>');
                 }
             }
 
-            $msg_row = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE code = 'registration_confirmation' AND lang = %s", $lang));
+            $msg_row = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE code = 'registration_confirmation' AND lang = %s AND organization_id = %d", $lang, $_POST['organization_id']));
                 
             $msg = str_replace('{EVENTNAMES}', $event_names, $msg_row[0]->data);
-            $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id . '"><button>' . __('[:en]Pay Online[:bg]Плащане онлайн', 'event-registration') . '</button></a></div>' , $msg);
-            $msg = str_replace('{PAYMENT_ID}', $group_id , $msg);
 
+
+
+      $payment_id = $group_id;
+        $c = 0;
+        $disciplines = $wpdb->get_results($wpdb->prepare("SELECT MED.*, ME.organization_id, ME.name_en as event_name_en, ME.name_bg as event_name_bg FROM marathon_events_users MEU 
+                                                          JOIN marathon_events_distances MED ON MED.id = MEU.event_distance_id
+                                                          JOIN marathon_events ME ON ME.unique_id = MED.event_id
+                                                          WHERE MEU.group_id = %d", $payment_id));
+                $price = 0;
+                foreach($disciplines as $discipline)
+                {
+                    $event_names .= $discipline->{event_name_ . $lang} . '  ' . $discipline->{name_ . $lang} .  ', ';
+                    $event_names_en .= $discipline->{event_name_en} . '  ' . $discipline->{name_en} .  ', ';
+
+                    $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE event_discipline_id = $discipline->id  and (start_at <= now() and end_at >= now()) or (start_at is null or end_at is null)");
+                    if($wpdb->num_rows == 0)
+                    {
+                        $c++;
+                    }
+                    else
+                    {
+                        $price += $price_row[0]->price;
+                    }
+                    $organization_id = $discipline->organization_id;
+                }
+                $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE count = $c and organization_id = $organization_id");
+                $price += $price_row[0]->price;
+                if(!isset($price))
+                {
+                    $price = 0;
+                }
+                $price = sprintf('%.2f', $price);
+
+
+
+
+#            if($price != '0.00')
+            {
+                $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id . '"><button>' . __('[:en]Pay Online[:bg]Плащане онлайн', 'event-registration') . '</button></a></div>' , $msg);
+            }
+#            else 
+#            {
+#                $msg = str_replace('{EPAY}', '', $msg);
+#            }
             @session_start();
 
 			global $smof_data;
@@ -653,7 +788,7 @@ $output .= '</div>';
                     $event_names .= $discipline->{event_name_ . $lang} . '  ' . $discipline->{name_ . $lang} .  ', '; 
                     $event_names_en .= $discipline->{event_name_en} . '  ' . $discipline->{name_en} .  ', ';
 
-                    $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE event_discipline_id = $discipline->id  and (start_at <= now() and end_at >= now()) or (start_at is null or end_at is null)");
+                    $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE event_discipline_id = $discipline->id");  //and (start_at <= now() and end_at >= now()) or (start_at is null or end_at is null)");
                     if($wpdb->num_rows == 0)
                     {
                         $c++;
@@ -664,7 +799,7 @@ $output .= '</div>';
                     }
                     $organization_id = $discipline->organization_id;
                 }
-                $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE count = $c and organization_id = $organization_id");
+                $price_row = $wpdb->get_results("SELECT * FROM marathon_events_prices WHERE count = $c ");
                 $price += $price_row[0]->price;
                 if(!isset($price))
                 {
@@ -752,19 +887,24 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
         }
         else
         {
+            if(current_user_can('contributor') || current_user_can('administrator'))
+            {
+                $admin_cells_header = '<th><b>' . __('Start number', 'event-registration') . '</b></th>';
+            }
             if(current_user_can('administrator'))
             {
-                 $admin_cells_header = '<th><b>' . __('Email', 'event-registration') . '</b></th><th><b>' . __('Phone', 'event-registration') . '</b></th><th><b>' . __('Payment ID', 'event-registration') . '</b></th><th><b>' . __('Price', 'event-registration') . '</b></th><th>' . __("Delete",'event-registration') . '</th>';
+                 $admin_cells_header .= '<th><b>' . __('Email', 'event-registration') . '</b></th><th><b>' . __('Phone', 'event-registration') . '</b></th><th><b>' . __('Payment ID', 'event-registration') . '</b></th><th><b>' . __('Price', 'event-registration') . '</b></th><th>' . __("Delete",'event-registration') . '</th>';
             }
             else
             {   
-                $admin_cells_header = '';
+                $admin_cells_header= '';
             }   
 
             foreach($rows as $row)
             {
-                $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . '<br><table class="footable"><thead><tr><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Surname') . '</b></th><th><b>' . __('YOB') . '</b></th><th><b>' .__('Club') . '</b></th><th><b>' . __('Gender') . '</b></th>' . $admin_cells_header . '</thead><tbody>';
-                $user_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_users MEU WHERE MEU.event_distance_id = %d order by id", $row->id));
+                $i = 0;
+                $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . '<br><table class="footable"><thead><tr><th>№</th><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Surname') . '</b></th><th><b>' . __('YOB') . '</b></th><th><b>' .__('Club') . '</b></th><th><b>' . __('Gender') . '</b></th><th><b>' . __('Category') . '</b></th>' . $admin_cells_header . '</thead><tbody>';
+                $user_rows = $wpdb->get_results($wpdb->prepare("SELECT MEU.*, c.name_short FROM marathon_events_users MEU left JOIN categories c on c.id = MEU.category_id WHERE MEU.event_distance_id = %d order by MEU.id", $row->id));
                 if($user_rows == NULL)
                 {   
                     $output .= '</table>'; //. __('No users are registered for this event yet!', 'event-registration') . '</br></br>';
@@ -773,9 +913,13 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                 foreach($user_rows as $user_row)
                 {
                     $events_count = $wpdb->get_var($wpdb->prepare("SELECT count(*) FROM marathon_events_users MEU WHERE MEU.group_id = %d AND MEU.payment = false", $user_row->group_id));
-                    $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
+                    $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d and organization_id = %d", $events_count, $event[0]->organization_id));
 
                     $user = get_userdata($user_row->user_id);
+                    if(!isset($user->user_email))
+                    {
+                        continue;
+                    }
                     if($user->gender == 'male')
                     {
                         $gender = __('Male', 'event-registration');
@@ -784,16 +928,34 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                     {
                         $gender = __('Female', 'event-registration');
                     }
-                    if(current_user_can('administrator'))
-                    {   
-                        $admin_cells = '<td>' . $user->user_email . '</td><td>' . $user->phone . '</td><td>' . $user_row->group_id . '</td><td>' . sprintf("%.2f", $payment[0]->price) .  '</td><td><button class="unjoin_event" data-id="' . $user_row->id . '">Delete</button></td><td><button class="payed" data-id="' . $user_row->id . '">Payed</button></td><td><button class="payed" data-withoutfee="1" data-id="' . $user_row->id . '">Free fee</button></td>';
+                    if(current_user_can('administrator') || current_user_can('contributor'))
+                    {  
+                        $admin_cells = '<td id="start_number' . $user_row->id . '">' . $user_row->start_number . '</td>';
+                        
+//                        if(isset($user_row->start_number))
+//                        {       
+//                            $admin_cells = '<td>' . $user_row->start_number . '</td>';
+//                        }
+//                        else
+                        {
+                            $admin_cells .= '<td><div class="status"></div><form action="" method="post" class="start_number_form"><input type="text" size="3" name="start_number"><input type="hidden" name="event_user_id" value="' . $user_row->id . '"><input type="submit" id="set" value="' . __('Set', 'event-registration') . '"></form></td>';
+                        }
+
+                        if(current_user_can('administrator'))
+                        {
+                            $admin_cells .= '<td>' . $user->user_email . '</td><td>' . $user->phone . '</td><td>' . $user_row->group_id . '</td><td>' . sprintf("%.2f", $payment[0]->price) .  '</td><td><button class="unjoin_event" data-id="' . $user_row->id . '">Delete</button></td><td><button class="payed" data-id="' . $user_row->group_id . '">Payed</button></td><td><button class="payed" data-withoutfee="1" data-id="' . $user_row->group_id . '">Free fee</button></td>';
+                        }
                     }
                     else
                     {
-                        $admin_cells = '';
+                        if(!isset($admin_cells))
+                        {
+                            $admin_cells = '';
+                        
+                        }
                     }
-                    $output .=  '<tr><td>' . $user->first_name . '</td><td>' . $user->last_name . '</td><td>' . $user->year_of_birth . '</td><td>' . $user->club . '</td><td>' . $gender . '</td>' . $admin_cells .'</tr>';
-                }
+                    $output .=  '<tr><td>' . ++$i . '</td><td>' . $user->first_name . '</td><td>' . $user->last_name . '</td><td>' . $user->year_of_birth . '</td><td>' . $user->club . '</td><td>' . $gender . '</td><td>' . $user_row->name_short .'</td>' . $admin_cells .'</tr>';
+                }//$user_row->name_short  kategoriq
                 $output .= '</tbody></table>';        
                 
             }
@@ -836,46 +998,119 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
             {   
                 $admin_cells_header = '';
             }   
-*/
+ */
             foreach($rows as $row)
             {
+                $checkpoint_rows =  $wpdb->get_results($wpdb->prepare("SELECT * 
+                                                                       FROM checkpoints C
+                                                                       WHERE C.event_discipline_id = %d
+                                                                       ORDER BY C.ordering DESC", $row->id));
                 $place = 0;
 
-                    $user_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_users MEU WHERE MEU.event_distance_id = %d", $row->id));
-                if($user_rows == NULL)
-                {   
-                    next;
-                } 
-                else
-                { 
-                    $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . ' - Генерално класиране(неофициално) <br><table class="footable"><thead><tr><th><b>' . __('Място', 'event-registration') . '</b></th><th><b>' . __('Стартов номер', 'event-registration') . '</b></th><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Фамилия') . '</b></th><th><b>' .__('YOB') . '</b></th><th><b>' .__('Клуб') . '</b></th><th><b>' . __('Пол') . '</b></th><th><b>' . __('Категория') . '</b></th>';
-
-
-                $checkpoints_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM checkpoints where event_discipline_id = %d order by ordering", $row->{id})); 
-
-                foreach($checkpoints_rows as $checkpoints_row)
+                $first = true;
+                $last = false;
+                $i = 0;
+                foreach($checkpoint_rows as $checkpoint)
                 {
-                    $output .= '<th><b>' .$checkpoints_row->{name} . '</b></th>';
+
+                if($i == count($checkpoint_rows) - 1)
+                {
+                    $last = true;
                 }
-                
-                $output .= '</thead><tbody>';
+        
+                $i++;
 
 
-                }            
+                $user_rows = $wpdb->get_results($wpdb->prepare("SELECT MEU.*, R.time AS time, C.ordering as ordering, R.time_diff, CE.name_short 
+                                                                FROM marathon_events_users MEU
+                                                                JOIN results R ON R.event_user_id = MEU.id 
+                                                                JOIN checkpoints C ON C.id = R.checkpoint_id 
+                                                                    AND C.id = %d
+                                                                LEFT JOIN categories CE ON CE.id = MEU.category_id 
+                                                                WHERE MEU.event_distance_id = %d 
+                                                                AND MEU.start_number is not null
+                                                                ORDER BY time, MEU.start_number
+                                                                ", $checkpoint->id, $row->id));
+                                                                //WHERE T.start_number <> -1
+
+/*UNION ALL
+                                                                SELECT T.start_number, T.user_id, T.start_time, T.id, T.name_short, T.event_distance_id FROM (SELECT MEU.*, R.time, C.ordering, R.time_diff, '' AS name_short
+                                                                FROM marathon_events_users MEU 
+                                                                JOIN results R ON R.event_user_id = MEU.id 
+                                                                JOIN checkpoints C ON C.id = R.checkpoint_id 
+                                                                WHERE MEU.event_distance_id = %d 
+                                                                AND MEU.start_number is not null 
+                                                                ORDER BY C.ordering DESC,R.time + R.time_diff, MEU.start_number) AS T 
+                                                                WHERE T.start_number = -1
+                                                                ", $row->id, $row->id));
+*/
+              //  if($user_rows == NULL)
+              //  {   
+              //      next;
+              //  } 
+              //  else
+                {
+                    if($first)
+                    { 
+                        $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . ' - Генерално класиране(неофициално) <br><table class="footable"><thead><tr><th><b>' . __('Място', 'event-registration') . '</b></th><th><b>' . __('СН', 'event-registration') . '</b></th><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Фамилия') . '</b></th><th><b>' .__('YOB') . '</b></th><th><b>' .__('Клуб') . '</b></th><th><b>' . __('Пол') . '</b></th><th><b>' . __('К') . '</b></th>';
+                        $first = false;
+                        $checkpoints_rows = $wpdb->get_results($wpdb->prepare("SELECT DISTINCT C.* FROM checkpoints C JOIN results R ON R.checkpoint_id = C.id where C.event_discipline_id = %d
+                            order by ordering", $row->{id})); 
+
+                        foreach($checkpoints_rows as $checkpoints_row)
+                        {
+                            $output .= '<th><b>' .$checkpoints_row->{name} . '</b></th>';
+                            $checkpoints_ids .= $checkpoints_row->{id} . ', ';
+                        }
+
+                            $output .= '</thead><tbody>';
+
+
+                    }            
+                }
+
+                if($last)
+                {
+                $users_without_results = $wpdb->get_results($wpdb->prepare("SELECT MEU.*, CE.name_short 
+                                                                FROM marathon_events_users MEU
+                                                                LEFT JOIN results R ON R.event_user_id = MEU.id 
+                                                                LEFT JOIN categories CE ON CE.id = MEU.category_id 
+                                                                WHERE MEU.event_distance_id = %d 
+                                                                AND MEU.start_number is not null
+                                                                AND R.id is NULL
+                                                                ORDER BY MEU.start_number
+                                                                ", $row->id));
+                                                                //WHERE T.start_number <> -1
+                foreach($users_without_results as $u)
+                {
+                    array_push($user_rows, $u);
+                }
+
+                }
                 foreach($user_rows as $user_row)
                 {
-                    $events_count = $wpdb->get_var($wpdb->prepare("SELECT count(*) FROM marathon_events_users MEU WHERE MEU.group_id = %d AND MEU.payment = false", $user_row->group_id));
-                    $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
-
-                    $user = get_userdata($user_row->user_id);
-                    if($user->gender == 'male')
+                    if(!$printed_users[$user_row->id])
                     {
-                        $gender = __('Male', 'event-registration');
-                    }
-                    else if (($user->gender == 'female'))
-                    {
-                        $gender = __('Female', 'event-registration');
-                    }
+                        if(!($row->category_id == 95 && ($user_row->name_short == "F20" || $user_row->name_short == "F40")))
+                        {
+                            $printed_users[$user_row->id] = true;
+                        }
+                        if(!isset($user_row->name_short) && !isset($user_row->time))
+                        {
+                            continue;
+                        }
+                            #                    $events_count = $wpdb->get_var($wpdb->prepare("SELECT count(*) FROM marathon_events_users MEU WHERE MEU.group_id = %d AND MEU.payment = false", $user_row->group_id));
+                            #                    $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
+                            $gender = null;
+                        $user = get_userdata($user_row->user_id);
+                        if($user->gender == 'male')
+                        {
+                            $gender = __('Male', 'event-registration');
+                        }
+                        else if (($user->gender == 'female'))
+                        {
+                            $gender = __('Female', 'event-registration');
+                        }
 /*                    if(current_user_can('administrator'))
                     {   
                         $admin_cells = '<td>' . $user->user_email . '</td><td>' . $user->phone . '</td><td>' . $user_row->group_id . '</td><td>' . sprintf("%.2f", $payment[0]->price) .  '</td>';
@@ -885,29 +1120,41 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                         $admin_cells = '';
                     }
  */
-                    $output .=  '<tr><td>' . ++$place . '</td><td>' . $user_row->start_number . '</td><td>' . $user->first_name . '</td><td>' . $user->last_name . '</td><td>' . $user->year_of_birth . '</td><td>' . $user->club . '</td><td>' . $gender . '</td><td>' . $row->category_short . '</td>';
+                            $output .=  '<tr><td>' . ++$place . '</td><td>' . ($user_row->start_number >= 10000 ? '': $user_row->start_number) . '</td><td>' . $user->first_name . '</td><td>' . $user->last_name . '</td><td>' . $user->year_of_birth . '</td><td>' . $user->club . '</td><td>' . $gender . '</td><td>' . $user_row->name_short . '</td>';
 
-                    $results = $wpdb->get_results($wpdb->prepare("SELECT * FROM checkpoints C LEFT JOIN results R ON C.id = R.checkpoint_id AND R.event_user_id = %d WHERE C.event_discipline_id = %d ORDER BY C.id DESC", $user_row->id, $user_row->event_distance_id));
+                        $results = $wpdb->get_results($wpdb->prepare("SELECT R.* 
+                            FROM checkpoints C 
+                            LEFT JOIN results R ON C.id = R.checkpoint_id 
+                            AND R.event_user_id = %d 
+                            WHERE C.event_discipline_id = %d 
+                            AND C.id in (" . substr($checkpoints_ids, 0, -2) .")
+                            ORDER BY C.ordering", $user_row->id, $user_row->event_distance_id));
 
-                    foreach ($results as $result)
-                    {
-                        $readable_time = NULL;
-                        if($result->time)
+                        foreach ($results as $result)
                         {
-                            $time = $result->time + $result->time_diff - $user_row->start_time;
-                            $seconds = $time % 60;
-                            $time /= 60;
-                            $minutes = $time % 60;
-                            $time /= 60;
-                            $hours = $time % 24;
-                            $readable_time = "$hours:$minutes:$seconds";
-                        }    
-                        $output .= '<td>' . $readable_time . '</td>';
+                            $readable_time = NULL;
+                            if($result->time)
+                            {
+                                $time = $result->time / 1000 + $result->time_diff - $user_row->start_time;
+                                $seconds = $time % 60;
+                                $time /= 60;
+                                $minutes = $time % 60;
+                                $time /= 60;
+                                $hours = $time % 24;
+                                $readable_time = sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
+                            }    
+                                $output .= '<td>' . $readable_time . '</td>';
+                        }
+                            $output .= "</tr>\n";
                     }
-                    $output .= '</tr>';
-                }
-                $output .= '</tbody></table>';        
+
                 
+                }
+                    if($last)
+                    {
+                        $output .= "</tbody></table>\n\n";        
+                    }
+                }   
             }
         }
 
@@ -924,9 +1171,14 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
 
 
 
+                $printed_users = array();
 
-        $rows = $wpdb->get_results($wpdb->prepare("SELECT MED.*, C.name as category_name, C.id as category_id, C.name_short AS category_short FROM categories C JOIN  marathon_events_distances MED ON C.event_discipline_id = MED.id JOIN marathon_events ME ON ME.unique_id = MED.event_id WHERE ME.unique_id = %s order by C.ordering, MED.ordering, MED.id", $attr['event_id']));
-        if($rows == NULL)
+
+
+#        $rows = $wpdb->get_results($wpdb->prepare("SELECT MED.* FROM  marathon_events_distances MED JOIN marathon_events ME ON ME.unique_id = MED.event_id WHERE ME.unique_id = %s order by MED.ordering, MED.id", $attr['event_id']));
+        $rows = $wpdb->get_results($wpdb->prepare("SELECT MED.*, C.name as category_name, C.id as category_id, C.name_short AS category_short FROM categories C JOIN  marathon_events_distances MED ON C.event_discipline_id = MED.id JOIN marathon_events ME ON ME.unique_id = MED.event_id WHERE ME.unique_id = %s and C.ordering <> 1 order by C.ordering, MED.ordering, MED.id", $attr['event_id']));
+ 
+       if($rows == NULL)
         {
             $output .= __('No users are registered for this event yet. '.$attr['event_id'], 'event-registration');
         }
@@ -940,46 +1192,129 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
             {   
                 $admin_cells_header = '';
             }   
-*/
+ */
+
             foreach($rows as $row)
             {
+                $checkpoint_rows =  $wpdb->get_results($wpdb->prepare("SELECT * 
+                                                                       FROM checkpoints C
+                                                                       WHERE C.event_discipline_id = %d
+                                                                       ORDER BY C.ordering DESC", $row->id));
                 $place = 0;
-
-                    $user_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_users MEU WHERE MEU.event_distance_id = %d and MEU.category_id = %d", $row->id, $row->category_id));
-                if($user_rows == NULL)
-                {   
-                    next;
-                } 
-                else
-                { 
-                    $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . ' - ' . $row->{category_name} . '<br><table class="footable"><thead><tr><th><b>' . __('Място', 'event-registration') . '</b></th><th><b>' . __('Стартов номер', 'event-registration') . '</b></th><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Фамилия') . '</b></th><th><b>' .__('YOB') . '</b></th><th><b>' .__('Клуб') . '</b></th><th><b>' . __('Пол') . '</b></th><th><b>' . __('Категория') . '</b></th>';
-
-
-                $checkpoints_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM checkpoints where event_discipline_id = %d order by ordering", $row->{id})); 
-
-                foreach($checkpoints_rows as $checkpoints_row)
+              $category_id1 = 10000;
+                    $category_id2 = 10000;
+       
+                $first = true;
+                $last = false;
+                $i = 0;
+                foreach($checkpoint_rows as $checkpoint)
                 {
-                    $output .= '<th><b>' .$checkpoints_row->{name} . '</b></th>';
+
+                if($i == count($checkpoint_rows) - 1)
+                {
+                    $last = true;
                 }
+        
+                $i++;
                 
-                $output .= '</thead><tbody>';
+               if($row->category_id == 95)
+                {
+                    $category_id1 = 91;
+                        $category_id2 = 94;
+                } 
+
+                $user_rows = $wpdb->get_results($wpdb->prepare("SELECT MEU.*, R.time AS time, C.ordering as ordering, R.time_diff, CE.name_short 
+                                                                FROM marathon_events_users MEU
+                                                                JOIN results R ON R.event_user_id = MEU.id 
+                                                                JOIN checkpoints C ON C.id = R.checkpoint_id 
+                                                                    AND C.id = %d
+                                                                LEFT JOIN categories CE ON CE.id = MEU.category_id 
+                                                                WHERE MEU.event_distance_id = %d 
+                                                                AND (MEU.category_id = %d OR MEU.category_id = %d OR MEU.category_id = %d)
+                                                                AND MEU.start_number is not null
+                                                                ORDER BY ordering DESC,time + R.time_diff, MEU.start_number
+                                                                ", $checkpoint->id, $row->id, $row->category_id, $category_id1, $category_id2));
+                                                                //WHERE T.start_number <> -1
+
+/*UNION ALL
+                                                                SELECT T.start_number, T.user_id, T.start_time, T.id, T.name_short, T.event_distance_id FROM (SELECT MEU.*, R.time, C.ordering, R.time_diff, '' AS name_short
+                                                                FROM marathon_events_users MEU 
+                                                                JOIN results R ON R.event_user_id = MEU.id 
+                                                                JOIN checkpoints C ON C.id = R.checkpoint_id 
+                                                                WHERE MEU.event_distance_id = %d 
+                                                                AND MEU.start_number is not null 
+                                                                ORDER BY C.ordering DESC,R.time + R.time_diff, MEU.start_number) AS T 
+                                                                WHERE T.start_number = -1
+                                                                ", $row->id, $row->id));
+*/
+//               if($user_rows == NULL)
+//               {   
+//                  next;
+//                } 
+//                else
+                {
+                    if($first)
+                    { 
+                        $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . ' - ' . $row->{category_name} . '<br><table class="footable"><thead><tr><th><b>' . __('Място', 'event-registration') . '</b></th><th><b>' . __('СН', 'event-registration') . '</b></th><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Фамилия') . '</b></th><th><b>' .__('YOB') . '</b></th><th><b>' .__('Клуб') . '</b></th><th><b>' . __('Пол') . '</b></th><th><b>' . __('К') . '</b></th>';
+                        $first = false;
+                        $checkpoints_rows = $wpdb->get_results($wpdb->prepare("SELECT DISTINCT C.* FROM checkpoints C JOIN results R ON R.checkpoint_id = C.id where C.event_discipline_id = %d
+                            order by ordering", $row->{id})); 
+
+                        foreach($checkpoints_rows as $checkpoints_row)
+                        {
+                            $output .= '<th><b>' .$checkpoints_row->{name} . '</b></th>';
+                            $checkpoints_ids .= $checkpoints_row->{id} . ', ';
+                        }
+
+                            $output .= '</thead><tbody>';
 
 
-                }            
+                    }            
+                }
+
+                if($last)
+                {
+                $users_without_results = $wpdb->get_results($wpdb->prepare("SELECT MEU.*, CE.name_short 
+                                                                FROM marathon_events_users MEU
+                                                                LEFT JOIN results R ON R.event_user_id = MEU.id 
+                                                                LEFT JOIN categories CE ON CE.id = MEU.category_id 
+                                                                WHERE MEU.event_distance_id = %d 
+                                                                AND MEU.start_number is not null
+                                                                AND R.id is NULL
+                                                                AND (MEU.category_id = %d OR MEU.category_id = %d OR MEU.category_id = %d)
+                                                                ORDER BY MEU.start_number
+                                                                ", $row->id, $row->category_id, $category_id1, $category_id2));
+                                                                //WHERE T.start_number <> -1
+                foreach($users_without_results as $u)
+                {
+                    array_push($user_rows, $u);
+                }
+
+                }
                 foreach($user_rows as $user_row)
                 {
-                    $events_count = $wpdb->get_var($wpdb->prepare("SELECT count(*) FROM marathon_events_users MEU WHERE MEU.group_id = %d AND MEU.payment = false", $user_row->group_id));
-                    $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
-
-                    $user = get_userdata($user_row->user_id);
-                    if($user->gender == 'male')
+                    if(!$printed_users[$user_row->id])
                     {
-                        $gender = __('Male', 'event-registration');
-                    }
-                    else if (($user->gender == 'female'))
-                    {
-                        $gender = __('Female', 'event-registration');
-                    }
+                        if(!($row->category_id == 95 && ($user_row->name_short == "F20" || $user_row->name_short == "F40")))
+                        {
+                            $printed_users[$user_row->id] = true;
+                        }
+                        if(!isset($user_row->name_short) && !isset($user_row->time))
+                        {
+                            continue;
+                        }
+                            #                    $events_count = $wpdb->get_var($wpdb->prepare("SELECT count(*) FROM marathon_events_users MEU WHERE MEU.group_id = %d AND MEU.payment = false", $user_row->group_id));
+                            #                    $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
+                            $gender = null;
+                        $user = get_userdata($user_row->user_id);
+                        if($user->gender == 'male')
+                        {
+                            $gender = __('Male', 'event-registration');
+                        }
+                        else if (($user->gender == 'female'))
+                        {
+                            $gender = __('Female', 'event-registration');
+                        }
 /*                    if(current_user_can('administrator'))
                     {   
                         $admin_cells = '<td>' . $user->user_email . '</td><td>' . $user->phone . '</td><td>' . $user_row->group_id . '</td><td>' . sprintf("%.2f", $payment[0]->price) .  '</td>';
@@ -989,10 +1324,115 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                         $admin_cells = '';
                     }
  */
+                            $output .=  '<tr><td>' . ++$place . '</td><td>' . ($user_row->start_number >= 10000 ? '': $user_row->start_number) . '</td><td>' . $user->first_name . '</td><td>' . $user->last_name . '</td><td>' . $user->year_of_birth . '</td><td>' . $user->club . '</td><td>' . $gender . '</td><td>' . $user_row->name_short . '</td>';
+
+                        $results = $wpdb->get_results($wpdb->prepare("SELECT R.* 
+                            FROM checkpoints C 
+                            LEFT JOIN results R ON C.id = R.checkpoint_id 
+                            AND R.event_user_id = %d 
+                            WHERE C.event_discipline_id = %d 
+                            AND C.id in (" . substr($checkpoints_ids, 0, -2) .")
+                            ORDER BY C.ordering", $user_row->id, $user_row->event_distance_id));
+
+                        foreach ($results as $result)
+                        {
+                            $readable_time = NULL;
+                            if($result->time)
+                            {
+                                $time = $result->time / 1000 + $result->time_diff - $user_row->start_time;
+                                $seconds = $time % 60;
+                                $time /= 60;
+                                $minutes = $time % 60;
+                                $time /= 60;
+                                $hours = $time % 24;
+                                $readable_time = sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
+                            }    
+                                $output .= '<td>' . $readable_time . '</td>';
+                        }
+                            $output .= "</tr>\n";
+                    }
+                }
+                    if($last)
+                    {
+                        $output .= "</tbody></table>\n\n";
+                    }
+
+                }   
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+
+
+        $rows = $wpdb->get_results($wpdb->prepare("SELECT MED.*, C.name as category_name, C.id as category_id, C.name_short AS category_short FROM categories C JOIN  marathon_events_distances MED ON C.event_discipline_id = MED.id JOIN marathon_events ME ON ME.unique_id = MED.event_id WHERE ME.unique_id = %s order by C.ordering, MED.ordering, MED.id", $attr['event_id']));
+        if($rows == NULL)
+        {
+            $output .= __('No users are registered for this event yet. '.$attr['event_id'], 'event-registration');
+        }
+        else
+        {
+            foreach($rows as $row)
+            {
+                $place = 0;
+                    $user_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_users MEU WHERE MEU.event_distance_id = %d and MEU.category_id = %d and start_number is not null", $row->id, $row->category_id));
+                if($user_rows == NULL)
+                {   
+                    next;
+                } 
+                else
+                { 
+                    $output .=  $event[0]->{name_ . $lang} . '  ' . $row->{name_ . $lang} . ' - ' . $row->{category_name} . '<br><table class="footable"><thead><tr><th><b>' . __('Място', 'event-registration') . '</b></th><th><b>' . __('Стартов номер', 'event-registration') . '</b></th><th><b>' . __('Name', 'event-registration') . '</b></th><th><b>' . __('Фамилия') . '</b></th><th><b>' .__('YOB') . '</b></th><th><b>' .__('Клуб') . '</b></th><th><b>' . __('Пол') . '</b></th><th><b>' . __('Категория') . '</b></th>';
+                $checkpoints_rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM checkpoints where event_discipline_id = %d order by ordering", $row->{id})); 
+                foreach($checkpoints_rows as $checkpoints_row)
+                {
+                    $output .= '<th><b>' .$checkpoints_row->{name} . '</b></th>';
+                }
+                
+                $output .= '</thead><tbody>';
+                }            
+                foreach($user_rows as $user_row)
+                {
+                    $events_count = $wpdb->get_var($wpdb->prepare("SELECT count(*) FROM marathon_events_users MEU WHERE MEU.group_id = %d AND MEU.payment = false", $user_row->group_id));
+                    $payment = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_events_prices WHERE count = %d", $events_count));
+                    $user = get_userdata($user_row->user_id);
+                    if($user->gender == 'male')
+                    {
+                        $gender = __('Male', 'event-registration');
+                    }
+                    else if (($user->gender == 'female'))
+                    {
+                        $gender = __('Female', 'event-registration');
+                    }
                     $output .=  '<tr><td>' . ++$place . '</td><td>' . $user_row->start_number . '</td><td>' . $user->first_name . '</td><td>' . $user->last_name . '</td><td>' . $user->year_of_birth . '</td><td>' . $user->club . '</td><td>' . $gender . '</td><td>' . $row->category_short . '</td>';
-
                     $results = $wpdb->get_results($wpdb->prepare("SELECT * FROM checkpoints C LEFT JOIN results R ON C.id = R.checkpoint_id AND R.event_user_id = %d WHERE C.event_discipline_id = %d ORDER BY C.id DESC", $user_row->id, $user_row->event_distance_id));
-
                     foreach ($results as $result)
                     {
                         $readable_time = NULL;
@@ -1014,6 +1454,15 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
                 
             }
         }
+
+*/
+
+
+
+
+
+
+
 
 
         return $output;
@@ -1131,6 +1580,41 @@ function delete_expired_payments()
 
 }
 
+function set_startNumber($attr)
+{
+    global $wpdb;
+        $wpdb->query( "START TRANSACTION;" );
+
+    $rows = $wpdb->get_results($wpdb->prepare("SELECT *
+                                                   FROM marathon_events_users MEU
+                                                   WHERE
+                                                   MEU.start_number = %d 
+                                                   AND MEU.event_distance_id = (SELECT event_distance_id FROM marathon_events_users where id = %d)", $_POST['start_number'], $_POST['event_user_id']));
+    if($rows != NULL)
+    {
+
+        if($rows[0]->user_id == 0)
+        {
+            $wpdb->update('results', array( 'event_user_id' => $_POST['event_user_id']), array( 'event_user_id' =>  $rows[0]->id ));
+            $wpdb->query($wpdb->prepare("DELETE FROM marathon_events_users where id = %d", $rows[0]->id));           
+        }
+        else 
+        {
+            $response = array ('success' => 0, msg => "Този стартов номер вече е даден на друг човек.");
+            echo json_encode($response);
+            die();
+        }
+    }
+
+    $wpdb->update('marathon_events_users', array( 'start_number' => $_POST['start_number']), array( 'id' => $_POST['event_user_id'] ));
+    
+            $wpdb->query( "COMMIT;" );
+
+    $response = array ('success' => 1, msg => $_POST['start_number']);
+    echo json_encode($response);
+    die();
+}
+
 function password_reset_link($login) {
     global $wpdb, $wp_hasher;
 
@@ -1226,6 +1710,9 @@ wp_deregister_script('editor-expand');
 
     add_action( 'wp_ajax_nopriv_sendContact', 'tb_us_sendContact' );
     add_action( 'wp_ajax_sendContact', 'tb_us_sendContact' );
+
+    add_action( 'wp_ajax_nopriv_startNumber', 'set_startNumber' );
+    add_action( 'wp_ajax_startNumber', 'set_startNumber' );
 
     add_action( 'wp_ajax_nopriv_unjoin_event', 'unjoin_event' );
     add_action( 'wp_ajax_unjoin_event', 'unjoin_event' );

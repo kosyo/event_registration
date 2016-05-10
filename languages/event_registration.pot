@@ -1717,3 +1717,11 @@ msgstr ""
 #. Author of the plugin/theme
 msgid "Konstantin Stoyanov <kosyo>"
 msgstr ""
+
+msgid "T-shirt size"
+msgstr "Размер тениска"
+
+msgid "Category"
+msgstr "Категория"
+
+

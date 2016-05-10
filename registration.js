@@ -1,6 +1,6 @@
 jQuery(document).ready(function(){
 
-setInterval(function(){ window.location.reload(); }, 300000);
+//setInterval(function(){ window.location.reload(); }, 300000);
 
 jQuery(".discipline_radio").click(function(e)
 {

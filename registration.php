@@ -415,13 +415,22 @@ if ((!is_user_logged_in() && !isset($attr['unjoin'])) || current_user_can('admin
 		
 		<div><label>'.__('Phone number', 'event-registration').'</label></div>	
 		<div><input type="text" name="phone" data-rule-required="true" value="' . $phone_default_value . '" data-msg-required="' . $required_msg . '"></div>
-
-		<div><label>'.__('Club', 'event-registration').'</label></div>
+        
+	<div><label>'.__('Club', 'event-registration').'</label></div>
         <div><input type="text" name="club"></div>					
 
 ';
 }
+$output .= ' <div><label>'.__('T-shirt size', 'event-registration').'</label></div>
+        <select name="tshirt_size" id="tshirt_size" data-rule-required="true" data-msg-required="' . $required_msg . '">
+            <option value="">-</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
 
+        </select>
+';
 $msg = $wpdb->get_results($wpdb->prepare("SELECT * FROM marathon_messages WHERE code = 'accept_terms' AND lang = %s", $lang));
 
 if(isset($events) && $events != '')
@@ -484,6 +493,7 @@ $output .= '</div>';
                 $user_id = wp_insert_user( $userdata ) ;
                 
                 add_user_meta( $user_id, 'club', $_POST['club'], NULL );
+                add_user_meta( $user_id, 'tshirt_size', $_POST['tshirt_size'], NULL );
                 add_user_meta( $user_id, 'phone', $_POST['phone'], NULL );
                 add_user_meta( $user_id, 'gender', $_POST['gender'], NULL );
                 add_user_meta( $user_id, 'year_of_birth', $_POST['year_of_birth'], NULL );
@@ -513,8 +523,11 @@ $output .= '</div>';
 			else
 			{
                 $user_id = get_current_user_id();
-
-			}
+                if(isset($_POST['tshirt_size']))
+                {
+                    add_user_meta( $user_id, 'tshirt_size', $_POST['tshirt_size'], NULL );
+                }    
+            }
 		
             error_log("User id " . $user_id . "\n", 3, '/www/marathon.bg/err.log');
 			$rows = $wpdb->get_results("SELECT * FROM marathon_events");
@@ -873,7 +886,7 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
         {
             if(current_user_can('contributor') || current_user_can('administrator'))
             {
-                $admin_cells_header = '<th><b>' . __('Start number', 'event-registration') . '</b></th>';
+                $admin_cells_header = '<th><b>' . __('Start number', 'event-registration') . '</b></th><th><b>' . __('Start number', 'event-registration') . '</b></th><th><b>' . __('T-shirt size', 'event-registration') . '</b></th>';
             }
             if(current_user_can('administrator'))
             {
@@ -922,7 +935,7 @@ INPUT.epay-button:hover   { border: solid  1px #ABC; background-color: #179; pad
 //                        }
 //                        else
                         {
-                            $admin_cells .= '<td><div class="status"></div><form action="" method="post" class="start_number_form"><input type="text" size="3" name="start_number"><input type="hidden" name="event_user_id" value="' . $user_row->id . '"><input type="submit" id="set" value="' . __('Set', 'event-registration') . '"></form></td>';
+                            $admin_cells .= '<td><div class="status"></div><form action="" method="post" class="start_number_form"><input type="text" size="3" name="start_number"><input type="hidden" name="event_user_id" value="' . $user_row->id . '"><input type="submit" id="set" value="' . __('Set', 'event-registration') . '"></form></td> <td>' . $user->tshirt_size .'</td>';
                         }
 
                         if(current_user_can('administrator'))

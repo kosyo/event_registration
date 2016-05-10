@@ -555,6 +555,8 @@ $output .= '</div>';
             if(isset($mail[0]->data))
             {
                 $mail[0]->data = str_replace('{EPAY}', get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id, $mail[0]->data);
+                $mail[0]->data = str_replace('{PAYMENT_ID}', $group_id, $mail[0]->data);
+
                 if(isset($_POST['email']))
                 {
                     $email = $_POST['email'];
@@ -578,6 +580,8 @@ $output .= '</div>';
                 
             $msg = str_replace('{EVENTNAMES}', $event_names, $msg_row[0]->data);
             $msg = str_replace('{EPAY}', '<div class="pay_div"><a href="' . get_site_url() . '/' . $lang . '/payment?payment_id='. $group_id . '"><button>' . __('[:en]Pay Online[:bg]Плащане онлайн', 'event-registration') . '</button></a></div>' , $msg);
+            $msg = str_replace('{PAYMENT_ID}', $group_id , $msg);
+
             @session_start();
 
 			global $smof_data;
